@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
+import { ensureHublinkSeed } from "@/db/ensure-hublink";
 import type { EdgeRecord, ExitLink, NodeInput, NodeRecord, SourceSnapshot, Visibility } from "@/domain/types";
 
 type NodeRow = {
@@ -93,6 +94,7 @@ function getDb() {
         FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
       );
     `);
+    ensureHublinkSeed(db);
     globalForDb.hublinkDb = db;
   }
   return globalForDb.hublinkDb;

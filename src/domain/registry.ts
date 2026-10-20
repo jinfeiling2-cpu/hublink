@@ -406,7 +406,7 @@ export const views: ViewDefinition[] = [
     config: {
       rootType: "project",
       edgeTypes: ["contains", "depends_on", "feeds", "step", "leads_to"],
-      maxDepth: 3,
+      maxDepth: 5,
     },
   },
   {
