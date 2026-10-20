@@ -40,7 +40,7 @@ export default async function AdminHome({
       <section className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-medium">节点</h2>
-          <Button render={<Link href="/admin/nodes/new" />}>新建节点</Button>
+          <Button nativeButton={false} render={<Link href="/admin/nodes/new" />}>新建节点</Button>
         </div>
         {nodes.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
@@ -76,7 +76,7 @@ export default async function AdminHome({
       <section className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-medium">连线</h2>
-          <Button variant="outline" render={<Link href="/admin/edges/new" />}>
+          <Button variant="outline" nativeButton={false} render={<Link href="/admin/edges/new" />}>
             新建连线
           </Button>
         </div>
