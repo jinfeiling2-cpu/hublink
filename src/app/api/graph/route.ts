@@ -5,7 +5,7 @@ import { listEdges, listNodes } from "@/db/store";
 export const dynamic = "force-dynamic";
 
 export function GET() {
-  const graph = visibleGraph(listNodes(), listEdges(), "public");
+  const graph = visibleGraph(listNodes("public"), listEdges("public"), "public");
   return Response.json({
     nodes: graph.nodes.map((node) => ({
       id: node.id,

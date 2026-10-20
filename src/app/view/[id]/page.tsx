@@ -1,18 +1,13 @@
-import nextDynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { groupByCategory, impressionSelection, rankNodes, rootsForTraverse, toAxisPoints, traverseTree, visibleGraph, type TraverseHit } from "@/domain/graph";
 import { edgeTypeById, isMeasureKey, measureLabel, nodeTypeById, viewById, type AxisConfig, type RankConfig, type TraverseConfig } from "@/domain/registry";
 import type { EdgeRecord, MeasureKey, NodeRecord } from "@/domain/types";
+import { AxisView } from "@/components/axis-view";
 import { measureText, typeLabel, whenLabel } from "@/lib/present";
 import { listEdges, listNodes } from "@/db/store";
 
 export const dynamic = "force-dynamic";
-
-const AxisCanvas = nextDynamic(() => import("@/components/axis-canvas").then((mod) => mod.AxisCanvas), {
-  ssr: false,
-  loading: () => <p className="text-sm text-muted-foreground">正在准备三维网格…</p>,
-});
 
 export default async function ViewPage({
   params,
@@ -25,7 +20,7 @@ export default async function ViewPage({
   const query = await searchParams;
   const view = viewById(id);
   if (!view) notFound();
-  const graph = visibleGraph(listNodes(), listEdges(), "public");
+  const graph = visibleGraph(listNodes("public"), listEdges("public"), "public");
 
   return (
     <main className="mx-auto grid max-w-5xl gap-6 px-4 py-10">
@@ -159,7 +154,7 @@ function Axis({
         </button>
       </form>
       <p className="text-xs text-muted-foreground">拖动可以转动这张网格。没有填写的度量会靠在起点。</p>
-      <AxisCanvas points={points} axes={[measureLabel(x), measureLabel(y), measureLabel(z)]} />
+      <AxisView points={points} axes={[measureLabel(x), measureLabel(y), measureLabel(z)]} />
     </div>
   );
 }

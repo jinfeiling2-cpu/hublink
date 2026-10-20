@@ -149,9 +149,13 @@ function mapNode(row: NodeRow, categoryIds: string[]): NodeRecord {
   };
 }
 
-export function listNodes(): NodeRecord[] {
+export function listNodes(scope: "all" | "public" = "all"): NodeRecord[] {
   const db = getDb();
-  const rows = db.prepare("SELECT * FROM nodes ORDER BY created_at ASC").all() as NodeRow[];
+  const sql =
+    scope === "public"
+      ? "SELECT * FROM nodes WHERE visibility = 'public' ORDER BY created_at ASC"
+      : "SELECT * FROM nodes ORDER BY created_at ASC";
+  const rows = db.prepare(sql).all() as NodeRow[];
   const categories = categoriesFor(db);
   return rows.map((row) => mapNode(row, categories.get(row.id) ?? []));
 }
@@ -164,8 +168,16 @@ export function findNodeBySource(sourceKind: string, externalId: string) {
   return listNodes().find((node) => node.sourceKind === sourceKind && node.sourceExternalId === externalId) ?? null;
 }
 
-export function listEdges(): EdgeRecord[] {
-  const rows = getDb().prepare("SELECT * FROM edges ORDER BY sort_order ASC, id ASC").all() as EdgeRow[];
+export function listEdges(scope: "all" | "public" = "all"): EdgeRecord[] {
+  const sql =
+    scope === "public"
+      ? `SELECT e.* FROM edges e
+         JOIN nodes s ON s.id = e.source_id
+         JOIN nodes t ON t.id = e.target_id
+         WHERE s.visibility = 'public' AND t.visibility = 'public'
+         ORDER BY e.sort_order ASC, e.id ASC`
+      : "SELECT * FROM edges ORDER BY sort_order ASC, id ASC";
+  const rows = getDb().prepare(sql).all() as EdgeRow[];
   return rows.map((row) => ({
     id: row.id,
     sourceId: row.source_id,

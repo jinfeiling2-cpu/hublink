@@ -9,13 +9,13 @@ export const dynamic = "force-dynamic";
 
 export default async function NodePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const nodes = listNodes();
-  const edges = listEdges();
+  const nodes = listNodes("public");
+  const edges = listEdges("public");
   const node = nodes.find((item) => item.id === id);
-  if (!node || node.visibility !== "public") notFound();
+  if (!node) notFound();
   const definition = nodeTypeById(node.type);
-  const outgoing = edges.filter((edge) => edge.sourceId === node.id && nodes.some((item) => item.id === edge.targetId && item.visibility === "public"));
-  const incoming = edges.filter((edge) => edge.targetId === node.id && nodes.some((item) => item.id === edge.sourceId && item.visibility === "public"));
+  const outgoing = edges.filter((edge) => edge.sourceId === node.id);
+  const incoming = edges.filter((edge) => edge.targetId === node.id);
   const byId = new Map(nodes.map((item) => [item.id, item]));
   const snapshot = publicSnapshot(node.sourceSnapshot);
   const categoryLabels = node.categoryIds
