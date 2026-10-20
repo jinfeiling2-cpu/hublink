@@ -25,15 +25,28 @@ test("第一个项目的内部图能在项目深入里走完", () => {
   assert.deepEqual(missing, []);
 });
 
-test("讲解点都有一句能单独读的简介，留白不假装已经完成", () => {
+test("内部图指向代码文件和函数，而不是概念清单", () => {
   assert.equal(hublinkNodes.find((node) => node.id === "hublink")?.visibility, "public");
+  const titles = hublinkNodes.map((node) => node.title);
+  assert.equal(titles.includes("四种看法"), false);
+  assert.equal(titles.includes("留白"), false);
   for (const node of hublinkNodes) {
     assert.ok(node.summary.length > 12, node.id);
+    if (node.id === "hublink") continue;
+    assert.match(node.summary + node.body, /src\/|[A-Za-z]{3,}\(/, node.id);
   }
-  const roomChildren = hublinkEdges.filter((edge) => edge.sourceId === "hublink.room").map((edge) => edge.targetId);
-  assert.deepEqual(roomChildren, ["hublink.room.open"]);
   const ids = new Set(hublinkNodes.map((node) => node.id));
   for (const edge of hublinkEdges) {
     assert.ok(ids.has(edge.sourceId) && ids.has(edge.targetId), edge.id);
   }
+  const layers = hublinkEdges.filter((edge) => edge.sourceId === "hublink" && edge.type === "contains").map((edge) => edge.targetId);
+  assert.deepEqual(layers, [
+    "hublink.app",
+    "hublink.domain",
+    "hublink.db",
+    "hublink.read",
+    "hublink.write",
+    "hublink.canvas",
+    "hublink.pull",
+  ]);
 });
