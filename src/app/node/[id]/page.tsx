@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { NetworkGraph } from "@/components/network-graph";
+import { toNetworkData } from "@/lib/network";
 import { publicSnapshot } from "@/domain/graph";
 import { categories, edgeTypeById, nodeTypeById } from "@/domain/registry";
+import type { EdgeRecord, NodeRecord } from "@/domain/types";
 import { listEdges, listNodes } from "@/db/store";
 import { statusText, trimNumber, typeLabel, visibilityLabel, whenLabel } from "@/lib/present";
 
@@ -22,9 +25,12 @@ export default async function NodePage({ params }: { params: Promise<{ id: strin
     .map((categoryId) => categories.find((item) => item.id === categoryId)?.label)
     .filter(Boolean);
 
+  const local = localGraph(node.id, nodes, edges);
+  const network = toNetworkData(local.nodes, local.edges);
+
   return (
-    <main className="mx-auto grid max-w-3xl gap-8 px-4 py-10">
-      <header className="grid gap-3">
+    <main className="mx-auto grid max-w-6xl gap-8 px-4 py-10">
+      <header className="grid max-w-3xl gap-3">
         <p className="text-sm text-muted-foreground">
           {typeLabel(node.type)}
           {node.status ? ` · ${statusText(node.status)}` : ""} · {visibilityLabel(node.visibility)}
@@ -40,16 +46,22 @@ export default async function NodePage({ params }: { params: Promise<{ id: strin
         <p className="text-lg leading-8">{node.summary || "识别层还空着。"}</p>
       </header>
 
-      <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+      {local.nodes.length > 1 ? (
+        <section className="rounded-2xl border border-border bg-[#243038] px-3 py-4 text-slate-100 md:px-5">
+          <NetworkGraph nodes={network.nodes} edges={network.edges} height={560} initialSelected={node.id} />
+        </section>
+      ) : null}
+
+      <dl className="grid max-w-3xl grid-cols-2 gap-3 text-sm md:grid-cols-4">
         <Fact label="时间" value={whenLabel(node)} />
         <Fact label="规模" value={trimNumber(node.scale)} />
         <Fact label="重要性" value={trimNumber(node.importance)} />
         <Fact label="亲疏" value={trimNumber(node.centrality)} />
       </dl>
 
-      {categoryLabels.length > 0 ? <p className="text-sm text-muted-foreground">{categoryLabels.join(" · ")}</p> : null}
+      {categoryLabels.length > 0 ? <p className="max-w-3xl text-sm text-muted-foreground">{categoryLabels.join(" · ")}</p> : null}
 
-      <section className="grid gap-2">
+      <section className="grid max-w-3xl gap-2">
         <h2 className="text-sm font-medium">说明</h2>
         {node.body ? (
           <p className="leading-7 whitespace-pre-wrap">{node.body}</p>
@@ -61,7 +73,7 @@ export default async function NodePage({ params }: { params: Promise<{ id: strin
       <RelationGroup title="向外" edges={outgoing} byId={byId} direction="out" empty={definition?.layers.includes("internal") ? "内部还没有拆开。架构部分、运行步骤和决策会以连接出现在这里。" : "没有向外的公开连接。"} />
       <RelationGroup title="被连接" edges={incoming} byId={byId} direction="in" empty="没有别的公开节点指向这里。" />
 
-      <section className="grid gap-2">
+      <section className="grid max-w-3xl gap-2">
         <h2 className="text-sm font-medium">出口</h2>
         {node.primaryUrl || node.exitLinks.length > 0 ? (
           <ul className="grid gap-1 text-sm">
@@ -102,6 +114,36 @@ export default async function NodePage({ params }: { params: Promise<{ id: strin
   );
 }
 
+function localGraph(focusId: string, nodes: NodeRecord[], edges: EdgeRecord[]) {
+  const ids = new Set<string>([focusId]);
+  let frontier = [focusId];
+  for (let depth = 0; depth < 8; depth += 1) {
+    const next: string[] = [];
+    for (const id of frontier) {
+      for (const edge of edges) {
+        if (edge.sourceId === id && !ids.has(edge.targetId)) {
+          ids.add(edge.targetId);
+          next.push(edge.targetId);
+        }
+      }
+    }
+    frontier = next;
+  }
+  for (const edge of edges) {
+    if (edge.targetId === focusId) ids.add(edge.sourceId);
+  }
+  const parents = edges.filter((edge) => edge.targetId === focusId).map((edge) => edge.sourceId);
+  for (const parent of parents) {
+    for (const edge of edges) {
+      if (edge.sourceId === parent && (edge.type === "contains" || edge.type === "step")) ids.add(edge.targetId);
+    }
+  }
+  return {
+    nodes: nodes.filter((item) => ids.has(item.id)),
+    edges: edges.filter((edge) => ids.has(edge.sourceId) && ids.has(edge.targetId)),
+  };
+}
+
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border px-3 py-2">
@@ -125,7 +167,7 @@ function RelationGroup({
   empty: string;
 }) {
   return (
-    <section className="grid gap-2">
+    <section className="grid max-w-3xl gap-2">
       <h2 className="text-sm font-medium">{title}</h2>
       {edges.length === 0 ? (
         <p className="text-sm text-muted-foreground">{empty}</p>

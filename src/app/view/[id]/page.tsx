@@ -4,6 +4,8 @@ import { groupByCategory, impressionSelection, rankNodes, rootsForTraverse, toAx
 import { edgeTypeById, isMeasureKey, measureLabel, nodeTypeById, viewById, type AxisConfig, type RankConfig, type TraverseConfig } from "@/domain/registry";
 import type { EdgeRecord, MeasureKey, NodeRecord } from "@/domain/types";
 import { AxisView } from "@/components/axis-view";
+import { NetworkGraph } from "@/components/network-graph";
+import { toNetworkData } from "@/lib/network";
 import { measureText, typeLabel, whenLabel } from "@/lib/present";
 import { listEdges, listNodes } from "@/db/store";
 
@@ -23,7 +25,7 @@ export default async function ViewPage({
   const graph = visibleGraph(listNodes("public"), listEdges("public"), "public");
 
   return (
-    <main className="mx-auto grid max-w-5xl gap-6 px-4 py-10">
+    <main className={`mx-auto grid gap-6 px-4 py-10 ${view.kind === "network" ? "max-w-6xl" : "max-w-5xl"}`}>
       <header className="grid gap-2">
         <p className="text-sm text-muted-foreground">阅览</p>
         <h1 className="text-3xl font-semibold tracking-tight">{view.name}</h1>
@@ -35,6 +37,8 @@ export default async function ViewPage({
         <Impression nodes={graph.nodes} edges={graph.edges} />
       ) : view.kind === "rank" ? (
         <Rank nodes={graph.nodes} edges={graph.edges} config={view.config as RankConfig} />
+      ) : view.kind === "network" ? (
+        <NetworkView nodes={graph.nodes} edges={graph.edges} />
       ) : view.kind === "axis3" ? (
         <Axis nodes={graph.nodes} edges={graph.edges} config={view.config as AxisConfig} query={query} />
       ) : (
@@ -255,6 +259,15 @@ function NodeCard({ node, index, meta }: { node: NodeRecord; index?: number; met
       <span className="font-medium">{node.title}</span>
       {node.summary ? <span className="text-sm leading-6 text-muted-foreground">{node.summary}</span> : null}
     </Link>
+  );
+}
+
+function NetworkView({ nodes, edges }: { nodes: NodeRecord[]; edges: EdgeRecord[] }) {
+  const network = toNetworkData(nodes, edges);
+  return (
+    <section className="rounded-2xl border border-border bg-[#243038] px-3 py-4 text-slate-100 md:px-5">
+      <NetworkGraph nodes={network.nodes} edges={network.edges} height={720} />
+    </section>
   );
 }
 

@@ -52,12 +52,16 @@ export type TraverseConfig = {
   maxDepth: number;
 };
 
+export type NetworkConfig = {
+  sizeBy: "importance" | "centrality" | "degree";
+};
+
 export type ViewDefinition = {
   id: string;
   name: string;
   question: string;
-  kind: "rank" | "axis3" | "template" | "traverse";
-  config: RankConfig | AxisConfig | TemplateConfig | TraverseConfig;
+  kind: "network" | "rank" | "axis3" | "template" | "traverse";
+  config: NetworkConfig | RankConfig | AxisConfig | TemplateConfig | TraverseConfig;
 };
 
 export type SourceAdapterDefinition = {
@@ -349,6 +353,13 @@ export const statuses: StatusDefinition[] = [
 ];
 
 export const views: ViewDefinition[] = [
+  {
+    id: "network",
+    name: "节点图",
+    question: "这些点怎样连在一起，哪些是枢纽，哪些聚成一簇？",
+    kind: "network",
+    config: { sizeBy: "importance" },
+  },
   {
     id: "impression",
     name: "十几秒印象",

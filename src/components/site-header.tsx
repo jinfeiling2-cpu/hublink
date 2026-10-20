@@ -14,7 +14,7 @@ export function SiteHeader() {
   const pathname = usePathname();
   return (
     <header className="border-b border-border/80 bg-background/90 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4">
         <Link href="/" className="flex items-baseline gap-2">
           <span className="text-base font-semibold tracking-tight">Hublink</span>
           <span className="text-sm text-muted-foreground">个人总览</span>
