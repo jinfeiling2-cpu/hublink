@@ -476,8 +476,8 @@ function radiusFor(node: NetworkNodeInput, sizeBy: SizeBy, hub: boolean, cluster
   if (hub) return Math.max(radius + 18, 42);
   if (clusterHead) {
     const fontSize = node.title.length > 4 ? 10 : 11;
-    const needed = textWidth(node.title, fontSize) / 1.45 + 11;
-    return Math.max(radius, needed, 30);
+    const needed = textWidth(node.title, fontSize) / 1.6 + 8;
+    return Math.max(radius, Math.min(needed, 36), 26);
   }
   return radius;
 }

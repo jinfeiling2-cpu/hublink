@@ -25,7 +25,7 @@ export default function HomePage() {
         <p className="text-sm text-muted-foreground">阅读入口</p>
         <h1 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">从不同的问题进入同一个人。</h1>
         <p className="text-sm leading-6 text-muted-foreground">
-          现在这张图是本站的代码：页面、领域规则、数据库，以及读取和写入怎么调用它们。同一颜色是同一支代码。点一下，只亮出直接相连的文件或函数。
+          现在这张图是本仓库：README、目录和文件。同一颜色是同一个目录。线要么是目录包含文件，要么是函数的调用顺序。点一下，只亮出直接相连的文件。
         </p>
         <p className="text-sm text-muted-foreground">
           公开节点 {tally.publicNodes} 个，连线 {tally.edges} 条。个人节点 {tally.personalNodes} 个，只在后台可见。

@@ -2,7 +2,7 @@ import type Database from "better-sqlite3";
 import { hublinkEdges, hublinkNodes } from "@/content/hublink";
 
 const createdAt = "2026-10-20T00:00:00.000Z";
-const seedRevision = "code-framework";
+const seedRevision = "repo-modules";
 
 export function ensureHublinkSeed(db: Database.Database) {
   const hasNode = db.prepare("SELECT 1 AS ok FROM nodes WHERE id = ?");

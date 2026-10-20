@@ -41,12 +41,16 @@ test("内部图指向代码文件和函数，而不是概念清单", () => {
   }
   const layers = hublinkEdges.filter((edge) => edge.sourceId === "hublink" && edge.type === "contains").map((edge) => edge.targetId);
   assert.deepEqual(layers, [
+    "hublink.readme",
     "hublink.app",
     "hublink.domain",
     "hublink.db",
+    "hublink.lib",
     "hublink.read",
     "hublink.write",
     "hublink.canvas",
     "hublink.pull",
   ]);
+  assert.equal(hublinkNodes.some((item) => item.title === "README"), true);
+  assert.equal(hublinkEdges.some((item) => item.type === "step" && item.sourceId === "hublink.read"), true);
 });
