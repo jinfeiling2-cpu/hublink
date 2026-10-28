@@ -43,3 +43,6 @@ next-env.d.ts
 
 # local graph
 /data
+
+# private source material for future content and view design
+/资料收集箱/

@@ -3,35 +3,42 @@ import { NetworkGraph } from "@/components/network-graph";
 import { toNetworkData } from "@/lib/network";
 import { visibleGraph } from "@/domain/graph";
 import { views } from "@/domain/registry";
-import { counts, listEdges, listNodes } from "@/db/store";
+import { listEdges, listNodes } from "@/db/store";
 
 export const dynamic = "force-dynamic";
 
 const kindLabel: Record<string, string> = {
   network: "节点图",
-  template: "固定版式",
+  template: "简历概览",
   rank: "排序",
   axis3: "三维网格",
   traverse: "沿连接深入",
 };
 
 export default function HomePage() {
-  const tally = counts();
   const graph = visibleGraph(listNodes("public"), listEdges("public"), "public");
   const network = toNetworkData(graph.nodes, graph.edges);
   return (
     <main className="mx-auto grid max-w-6xl gap-5 px-4 py-6">
       <section className="grid max-w-3xl gap-2">
-        <p className="text-sm text-muted-foreground">阅读入口</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">从不同的问题进入同一个人。</h1>
+        <p className="text-sm text-muted-foreground">个人工作图谱</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">项目、方向、经历与作品，连成一张可以继续理解的图。</h1>
         <p className="text-sm leading-6 text-muted-foreground">
-          现在这张图是本仓库：README、目录和文件。同一颜色是同一个目录。线要么是目录包含文件，要么是函数的调用顺序。点一下，只亮出直接相连的文件。
+          同一份图谱可以按简历、时间、重要性、规模、联系或三维坐标浏览；进入项目后，还可以沿结构和运行过程继续阅读。
         </p>
         <p className="text-sm text-muted-foreground">
-          公开节点 {tally.publicNodes} 个，连线 {tally.edges} 条。个人节点 {tally.personalNodes} 个，只在后台可见。
-          {tally.publicNodes === 0 ? " 内容还没有写入，框架已经可以浏览。" : ""}
+          当前公开图谱有 {graph.nodes.length} 个节点、{graph.edges.length} 条连接。
+          {graph.nodes.length === 0 ? "还没有公开内容。" : ""}
         </p>
       </section>
+      <Link href="/project/hublink" className="group grid gap-3 rounded-2xl border border-border bg-card p-5 transition-colors hover:bg-accent md:grid-cols-[1fr_auto] md:items-center md:p-6">
+        <span className="grid gap-2">
+          <span className="text-xs font-semibold tracking-[0.16em] text-primary">项目案例 · 原型建设中</span>
+          <span className="text-2xl font-semibold">Hublink</span>
+          <span className="max-w-2xl text-sm leading-6 text-muted-foreground">个人工作图谱本身。查看它由哪些部分组成、访客阅读和后台写入如何运行，以及还有哪些内容需要由项目参与者解释。</span>
+        </span>
+        <span className="text-sm font-medium group-hover:underline">阅读项目 →</span>
+      </Link>
       {graph.nodes.length > 0 ? (
         <section className="rounded-2xl border border-border bg-[#243038] px-3 py-4 text-slate-100 md:px-5">
           <NetworkGraph nodes={network.nodes} edges={network.edges} height={720} />

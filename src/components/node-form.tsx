@@ -96,7 +96,7 @@ export function NodeForm({
       <div className="grid gap-4 md:grid-cols-3">
         <NumberField name="scale" label="规模" defaultValue={node?.scale ?? 0} hint="0 到 1，由你判断。" />
         <NumberField name="importance" label="重要性" defaultValue={node?.importance ?? 0} hint="它在工作里有多重。" />
-        <NumberField name="centrality" label="亲疏" defaultValue={node?.centrality ?? 0} hint="对认识你有多关键。" />
+        <NumberField name="centrality" label="个人关联度" defaultValue={node?.centrality ?? 0} hint="与你的经历、工作主线和方向关联得有多紧；不按连线数量计算。" />
       </div>
 
       <fieldset className="grid gap-3">

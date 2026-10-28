@@ -72,7 +72,7 @@ function Impression({ nodes, edges }: { nodes: NodeRecord[]; edges: EdgeRecord[]
             <p className="max-w-2xl text-lg leading-8">{selection.person.summary || "识别层还空着。"}</p>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">还没有公开的「人」节点。其他类型仍会按亲疏和重要性列出。</p>
+          <p className="text-sm text-muted-foreground">还没有公开的「人」节点。其他类型仍会按个人关联度和重要性列出。</p>
         )}
       </section>
       <div className="grid gap-6 md:grid-cols-3">
@@ -80,7 +80,7 @@ function Impression({ nodes, edges }: { nodes: NodeRecord[]; edges: EdgeRecord[]
         <Column title="项目" empty="还没有公开的项目。" nodes={selection.projects} />
         <Column title="经历" empty="还没有公开的经历。" nodes={selection.experiences} />
       </div>
-      <p className="text-xs leading-5 text-muted-foreground">这一页只用识别层：人取亲疏最高的一个，方向取亲疏前三，项目取重要性前三，经历取时间最近的四段。</p>
+      <p className="text-xs leading-5 text-muted-foreground">当前版本会按关联程度、重要性和时间自动选取内容。整理完整个人材料后，可以把简历重点改为人工选择与排序。</p>
     </div>
   );
 }

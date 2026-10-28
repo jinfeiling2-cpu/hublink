@@ -66,7 +66,7 @@ export default function FrameworkPage() {
       <section className="grid gap-3">
         <h2 className="text-xl font-semibold">维度</h2>
         <p className="text-sm leading-6 text-muted-foreground">
-          度量可以当作排序键或三维网格的轴：时间、规模、重要性、亲疏、联系。类别用来筛选和分组。
+          度量可以当作排序键或三维网格的轴：时间、规模、重要性、个人关联度、联系。类别用来筛选和分组。
         </p>
         <div className="flex flex-wrap gap-2">
           {categoryGroups.map((group) => (

@@ -269,7 +269,7 @@ export const hublinkNodes: HublinkNode[] = [
     type: "part",
     title: "axis",
     summary: "src/components/axis-view.tsx 和 axis-canvas.tsx。三维网格只画球和轴线，标题用画布下面的链接。",
-    body: "轴的名字来自阅览配置，默认是时间、重要性和亲疏。没填的数字靠在起点。",
+    body: "轴的名字来自阅览配置，默认是时间、重要性和个人关联度。没填的数字靠在起点。",
     importance: 0.4,
   }),
   node({

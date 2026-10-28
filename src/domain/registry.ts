@@ -82,7 +82,7 @@ export const layers: LayerDefinition[] = [
   {
     id: "placement",
     label: "摆放",
-    description: "标题、类型、时间、规模、重要性、亲疏、公开或个人。列表、排序和三维网格只用这一层。",
+    description: "标题、类型、时间、规模、重要性、个人关联度、公开或个人。列表、排序和三维网格只用这一层。",
   },
   {
     id: "recognition",
@@ -110,7 +110,7 @@ export const nodeTypes: NodeTypeDefinition[] = [
   {
     id: "person",
     label: "人",
-    description: "这张图的主体。识别层是读者十几秒内记住的那句话。",
+    description: "主页介绍的对象。可以连接到方向、项目、经历、账号和其他作品。",
     layers: ["placement", "recognition", "account", "exit"],
     childEdgeTypes: ["contains"],
   },
@@ -122,6 +122,13 @@ export const nodeTypes: NodeTypeDefinition[] = [
     childEdgeTypes: [],
   },
   {
+    id: "goal",
+    label: "目标",
+    description: "希望通过一组工作逐步达到的状态。项目或方向可以用「实现」或「引出」连到这里。",
+    layers: ["placement", "recognition", "account", "internal"],
+    childEdgeTypes: ["contains", "leads_to"],
+  },
+  {
     id: "project",
     label: "项目",
     description: "一件工作。识别层给简历式阅读，内部层展开架构和运行，出口再指向仓库。",
@@ -129,11 +136,18 @@ export const nodeTypes: NodeTypeDefinition[] = [
     childEdgeTypes: ["contains", "depends_on", "feeds", "step", "leads_to"],
   },
   {
+    id: "concept",
+    label: "思路要点",
+    description: "一个可独立解释的问题、机制、主题或论证。用于拆解研究思路、游戏构思与世界观。",
+    layers: ["placement", "recognition", "account", "internal"],
+    childEdgeTypes: ["contains", "related_to", "contributes_to"],
+  },
+  {
     id: "part",
-    label: "架构部分",
-    description: "项目内部的一块职责。和其他部分用依赖、供给相连，出口可以落到仓库里的具体路径。",
-    layers: ["placement", "recognition", "account", "exit"],
-    childEdgeTypes: ["depends_on", "feeds", "implements"],
+    label: "项目内部分支",
+    description: "按项目本身的结构拆出的一块内容，可以是问题、机制、阶段、决策、实现模块或叙事单元，不预设为代码目录。",
+    layers: ["placement", "recognition", "account", "internal", "exit"],
+    childEdgeTypes: ["contains", "depends_on", "feeds", "step", "leads_to", "related_to"],
   },
   {
     id: "flow",
@@ -209,6 +223,27 @@ export const nodeTypes: NodeTypeDefinition[] = [
 
 export const edgeTypes: EdgeTypeDefinition[] = [
   {
+    id: "related_to",
+    label: "主题关联",
+    group: "course",
+    description: "两项内容共享一个明确问题或结构；写清依据。不表示依赖、因果、作者意图或已经发生的方法迁移。",
+    ordered: false,
+  },
+  {
+    id: "contributes_to",
+    label: "服务于",
+    group: "evidence",
+    description: "一项工作或思路可服务于某个目标。需要写明作用与依据，不表示目标已达成。",
+    ordered: false,
+  },
+  {
+    id: "informs",
+    label: "为工作画像提供材料",
+    group: "evidence",
+    description: "一项已有记录为工作画像或综合解释提供材料；说明它为何进入这项理解，不表示单条材料能够证明完整身份。",
+    ordered: false,
+  },
+  {
     id: "contains",
     label: "包含",
     group: "composition",
@@ -219,7 +254,7 @@ export const edgeTypes: EdgeTypeDefinition[] = [
     id: "implements",
     label: "实现",
     group: "composition",
-    description: "一块实现指向它所落实的目标或接口。",
+    description: "一项工作或内部部分已经落实某个明确功能或接口；目标性、计划性贡献应使用「服务于」。",
     ordered: false,
   },
   {
@@ -247,7 +282,7 @@ export const edgeTypes: EdgeTypeDefinition[] = [
     id: "embodies",
     label: "体现",
     group: "evidence",
-    description: "项目体现某个方向。",
+    description: "内容直接呈现某个方向的具体问题或机制；仅共享主题时使用「主题关联」。",
     ordered: false,
   },
   {
@@ -296,7 +331,7 @@ export const edgeTypes: EdgeTypeDefinition[] = [
     id: "leads_to",
     label: "引出",
     group: "course",
-    description: "因果，而不是日历上的先后。这件事引出了下一件事。",
+    description: "有材料支持的因果或实际发展关系，而非时间先后、相似主题或可能贡献。",
     ordered: true,
   },
   {
@@ -312,7 +347,7 @@ export const measures: DimensionDefinition[] = [
   { id: "time", kind: "measure", label: "时间", description: "节点上的起始时间。项目和经历用时间段，决策和条目用时间点。" },
   { id: "scale", kind: "measure", label: "规模", description: "这件事情的体量。由你判断，不从星标数换算。" },
   { id: "importance", kind: "measure", label: "重要性", description: "它在你的工作里有多重。" },
-  { id: "centrality", kind: "measure", label: "亲疏", description: "它对于认识你有多关键。十几秒印象按这个取舍。" },
+  { id: "centrality", kind: "measure", label: "个人关联度", description: "它与你的经历、工作主线和方向关联得有多紧，由你判断，不按连线数量计算。" },
   { id: "degree", kind: "measure", label: "联系", description: "与它相连的公开连线数量，由图算出来。" },
 ];
 
@@ -362,8 +397,8 @@ export const views: ViewDefinition[] = [
   },
   {
     id: "impression",
-    name: "十几秒印象",
-    question: "这个人是谁，现在最该记住哪几件事？",
+    name: "简历概览",
+    question: "用简历式结构查看个人介绍、方向、代表项目和经历。",
     kind: "template",
     config: { template: "impression" },
   },
@@ -405,7 +440,7 @@ export const views: ViewDefinition[] = [
   {
     id: "space",
     name: "三维网格",
-    question: "时间、重要性和亲疏放在一起时，哪些事情挤在一处，哪些独自待着？",
+    question: "时间、重要性和个人关联度放在一起时，哪些事情挤在一处，哪些独自待着？",
     kind: "axis3",
     config: { x: "time", y: "importance", z: "centrality" },
   },

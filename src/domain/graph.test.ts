@@ -71,7 +71,7 @@ test("排序把没有时间的节点放在最后", () => {
   assert.deepEqual(ranked, ["b", "a", "c"]);
 });
 
-test("十几秒印象只从当前图里按亲疏和重要性取节点", () => {
+test("简历概览只从当前图里按关联重点和重要性取节点", () => {
   const nodes = [
     node({ id: "me", type: "person", title: "某人", summary: "做系统的人", centrality: 1 }),
     node({ id: "d1", type: "direction", title: "阅读", centrality: 0.9 }),

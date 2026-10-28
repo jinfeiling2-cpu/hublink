@@ -36,11 +36,13 @@ export function NetworkGraph({
   edges,
   height = 680,
   initialSelected = null,
+  nodeLinkBase = "/node",
 }: {
   nodes: NetworkNodeInput[];
   edges: NetworkEdgeInput[];
   height?: number;
   initialSelected?: string | null;
+  nodeLinkBase?: string | null;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const simRef = useRef<Simulation<SimNode, SimLink> | null>(null);
@@ -206,7 +208,7 @@ export function NetworkGraph({
           {(
             [
               ["importance", "重要性"],
-              ["centrality", "亲疏"],
+              ["centrality", "个人关联度"],
               ["degree", "联系"],
             ] as const
           ).map(([key, label]) => (
@@ -323,9 +325,11 @@ export function NetworkGraph({
           <p className="text-xs text-slate-400">{nodeTypeById(active.type)?.label}</p>
           <h2 className="text-lg font-semibold">{active.title}</h2>
           {active.summary ? <p className="text-sm leading-6 text-slate-300">{active.summary}</p> : null}
-          <Link href={`/node/${active.id}`} className="text-sm text-amber-200 underline underline-offset-4">
-            进入这个点
-          </Link>
+          {nodeLinkBase ? (
+            <Link href={`${nodeLinkBase}/${active.id}`} className="text-sm text-amber-200 underline underline-offset-4">
+              进入这个点
+            </Link>
+          ) : null}
         </article>
       ) : (
         <p className="text-xs text-slate-400">还没有选中的点。拖动可以暂时拉开挤在一起的圆。</p>

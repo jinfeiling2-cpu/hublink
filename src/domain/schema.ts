@@ -17,7 +17,7 @@ export const nodeInputSchema = z.object({
   timeEnd: z.string().trim().max(20).nullable(),
   scale: z.number().min(0, "规模从 0 到 1").max(1, "规模从 0 到 1"),
   importance: z.number().min(0, "重要性从 0 到 1").max(1, "重要性从 0 到 1"),
-  centrality: z.number().min(0, "亲疏从 0 到 1").max(1, "亲疏从 0 到 1"),
+  centrality: z.number().min(0, "个人关联度从 0 到 1").max(1, "个人关联度从 0 到 1"),
   visibility: z.enum(["public", "personal"]),
   primaryUrl: z
     .string()

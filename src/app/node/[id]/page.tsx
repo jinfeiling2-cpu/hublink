@@ -56,7 +56,7 @@ export default async function NodePage({ params }: { params: Promise<{ id: strin
         <Fact label="时间" value={whenLabel(node)} />
         <Fact label="规模" value={trimNumber(node.scale)} />
         <Fact label="重要性" value={trimNumber(node.importance)} />
-        <Fact label="亲疏" value={trimNumber(node.centrality)} />
+        <Fact label="个人关联度" value={trimNumber(node.centrality)} />
       </dl>
 
       {categoryLabels.length > 0 ? <p className="max-w-3xl text-sm text-muted-foreground">{categoryLabels.join(" · ")}</p> : null}

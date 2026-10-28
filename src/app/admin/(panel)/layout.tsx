@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 const links = [
   { href: "/admin", label: "节点" },
+  { href: "/admin/graph", label: "全图" },
   { href: "/admin/nodes/new", label: "新建" },
   { href: "/admin/edges/new", label: "连线" },
   { href: "/admin/sources", label: "来源" },

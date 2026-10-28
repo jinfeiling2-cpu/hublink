@@ -95,6 +95,7 @@ export async function saveEdge(_state: FormState, formData: FormData): Promise<F
   const sourceId = String(formData.get("sourceId") ?? "");
   const targetId = String(formData.get("targetId") ?? "");
   const type = String(formData.get("type") ?? "");
+  const label = String(formData.get("label") ?? "").trim();
   const strength = Number(formData.get("strength") ?? 0);
   const sortOrder = Number(formData.get("sortOrder") ?? 0);
   if (!getNode(sourceId) || !getNode(targetId)) return { error: "连线的两端都需要是已有节点。" };
@@ -106,7 +107,7 @@ export async function saveEdge(_state: FormState, formData: FormData): Promise<F
     sourceId,
     targetId,
     type,
-    label: "",
+    label,
     strength,
     sortOrder,
   });

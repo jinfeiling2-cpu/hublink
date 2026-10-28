@@ -6,6 +6,7 @@ import { cn } from "cn";
 
 const links = [
   { href: "/", label: "阅读" },
+  { href: "/project/hublink", label: "项目案例" },
   { href: "/framework", label: "框架" },
   { href: "/admin", label: "后台" },
 ];
