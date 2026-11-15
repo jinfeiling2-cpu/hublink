@@ -64,11 +64,22 @@ export function impressionSelection(nodes: NodeRecord[], edges: EdgeRecord[]) {
       edges,
       key,
     ).slice(0, limit);
+  const coreDirection = rankNodes(nodes.filter((node) => node.type === "direction"), edges, "centrality")[0] ?? null;
+  const coreProjects = coreDirection
+    ? edges.filter((edge) => edge.sourceId !== coreDirection.id && edge.targetId === coreDirection.id
+      && ["related_to", "embodies", "contributes_to"].includes(edge.type))
+      .map((edge) => ({ node: nodes.find((node) => node.id === edge.sourceId && node.type === "project"), strength: edge.strength }))
+      .filter((item): item is { node: NodeRecord; strength: number } => Boolean(item.node))
+      .sort((a, b) => b.strength - a.strength || b.node.importance - a.node.importance || a.node.title.localeCompare(b.node.title, "zh"))
+      .map((item) => item.node)
+    : [];
 
   return {
-    person: pick("person", "centrality", 1)[0] ?? null,
+    person: nodes.find((node) => node.id === "person.public" && node.type === "person")
+      ?? pick("person", "centrality", 1)[0] ?? null,
+    coreDirection,
     directions: pick("direction", "centrality", 3),
-    projects: pick("project", "importance", 3),
+    projects: coreProjects.length ? coreProjects.slice(0, 3) : pick("project", "importance", 3),
     experiences: pick("experience", "time", 4),
   };
 }
@@ -212,10 +223,12 @@ export function mergeSourcePull(existing: NodeRecord | null, pull: SourcePull): 
   };
 }
 
-export function publicSnapshot(snapshot: NodeRecord["sourceSnapshot"]) {
-  if (!snapshot) return null;
+export function publicSnapshot(snapshot: NodeRecord["sourceSnapshot"], sourcePrivate = false) {
+  if (!snapshot || sourcePrivate) return null;
   return {
     htmlUrl: snapshot.htmlUrl ?? null,
+    revision: snapshot.revision ?? null,
+    branch: snapshot.branch ?? null,
     description: snapshot.description ?? "",
     language: snapshot.language ?? null,
     topics: snapshot.topics ?? [],

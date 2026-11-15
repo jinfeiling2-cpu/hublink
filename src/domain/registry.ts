@@ -150,6 +150,13 @@ export const nodeTypes: NodeTypeDefinition[] = [
     childEdgeTypes: ["contains", "depends_on", "feeds", "step", "leads_to", "related_to"],
   },
   {
+    id: "contribution",
+    label: "个人贡献",
+    description: "一个人在项目、经历或作品中承担的行动；必须独立记录个人归属核对状态，不等同于项目组成部分。",
+    layers: ["placement", "recognition", "account", "exit"],
+    childEdgeTypes: ["contribution_to"],
+  },
+  {
     id: "flow",
     label: "运行步骤",
     description: "事情运转时的一步，按顺序连接。描述的是运行方式，不是文件夹名称。",
@@ -300,6 +307,13 @@ export const edgeTypes: EdgeTypeDefinition[] = [
     ordered: false,
   },
   {
+    id: "contribution_to",
+    label: "贡献于",
+    group: "evidence",
+    description: "一条个人贡献记录属于某个项目、经历或作品；关系本身不证明该贡献的个人归属已核验。",
+    ordered: true,
+  },
+  {
     id: "documents",
     label: "记录",
     group: "evidence",
@@ -397,8 +411,8 @@ export const views: ViewDefinition[] = [
   },
   {
     id: "impression",
-    name: "简历概览",
-    question: "用简历式结构查看个人介绍、方向、代表项目和经历。",
+    name: "30 秒认识",
+    question: "先看个人核心诉求与思考，再看方向、代表项目和经历。",
     kind: "template",
     config: { template: "impression" },
   },

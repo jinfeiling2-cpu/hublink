@@ -1,5 +1,7 @@
 export type Visibility = "public" | "personal";
 
+export type ContributionReviewStatus = "system_verified" | "owner_unconfirmed" | "owner_confirmed";
+
 export type LayerId = "placement" | "recognition" | "account" | "internal" | "exit";
 
 export type MeasureKey = "time" | "scale" | "importance" | "centrality" | "degree";
@@ -13,6 +15,8 @@ export type ExitLink = {
 
 export type SourceSnapshot = {
   fetchedAt: string;
+  revision?: string;
+  branch?: string;
   htmlUrl?: string;
   description?: string;
   language?: string | null;
@@ -48,6 +52,7 @@ export type NodeRecord = {
   sourcePrivate: boolean;
   sourceSnapshot: SourceSnapshot | null;
   categoryIds: string[];
+  contributionReview?: ContributionReviewStatus | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -83,6 +88,7 @@ export type NodeInput = {
   sourceExternalId: string;
   sourcePrivate: boolean;
   sourceSnapshot: SourceSnapshot | null;
+  contributionReview?: ContributionReviewStatus | null;
 };
 
 export type SourcePull = {

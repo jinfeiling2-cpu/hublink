@@ -8,6 +8,7 @@ import { NetworkGraph } from "@/components/network-graph";
 import { toNetworkData } from "@/lib/network";
 import { measureText, typeLabel, whenLabel } from "@/lib/present";
 import { listEdges, listNodes } from "@/db/store";
+import { profile } from "@/content/profile";
 
 export const dynamic = "force-dynamic";
 
@@ -69,18 +70,26 @@ function Impression({ nodes, edges }: { nodes: NodeRecord[]; edges: EdgeRecord[]
                 {selection.person.title}
               </Link>
             </h2>
-            <p className="max-w-2xl text-lg leading-8">{selection.person.summary || "识别层还空着。"}</p>
+            <p className="max-w-2xl text-lg leading-8">{selection.person.id === "person.public" ? profile.shortIntro : selection.person.summary || "识别层还空着。"}</p>
           </>
         ) : (
           <p className="text-sm text-muted-foreground">还没有公开的「人」节点。其他类型仍会按个人关联度和重要性列出。</p>
         )}
       </section>
+      {selection.coreDirection ? (
+        <section className="grid gap-3 rounded-2xl border border-[#c9d7d6] bg-[linear-gradient(135deg,#edf4f0_0%,#f8f3e9_100%)] p-6 md:p-8">
+          <p className="text-xs font-semibold tracking-[0.16em] text-[#806b43]">核心诉求与个人思考</p>
+          <h2 className="text-2xl font-semibold tracking-tight">{selection.coreDirection.title}</h2>
+          <p className="max-w-3xl text-base leading-8">{profile.alignmentAim}</p>
+          <p className="max-w-3xl text-sm leading-7 text-muted-foreground">{selection.coreDirection.summary} 这是本人确认的方向；下方其他方向和代表项目是图谱整理的阅读入口，可继续核对其关系与依据。</p>
+        </section>
+      ) : null}
       <div className="grid gap-6 md:grid-cols-3">
         <Column title="方向" empty="还没有公开的方向。" nodes={selection.directions} />
         <Column title="项目" empty="还没有公开的项目。" nodes={selection.projects} />
         <Column title="经历" empty="还没有公开的经历。" nodes={selection.experiences} />
       </div>
-      <p className="text-xs leading-5 text-muted-foreground">当前版本会按关联程度、重要性和时间自动选取内容。整理完整个人材料后，可以把简历重点改为人工选择与排序。</p>
+      <p className="text-xs leading-5 text-muted-foreground">人物入口优先使用公开主页；核心方向固定呈现；项目优先按与核心方向的连接强度排序；经历按时间排序。筛选依据仍是可修订的图谱数据。</p>
     </div>
   );
 }

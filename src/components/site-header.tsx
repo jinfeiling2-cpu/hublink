@@ -6,6 +6,9 @@ import { cn } from "cn";
 
 const links = [
   { href: "/", label: "阅读" },
+  { href: "/resume", label: "简历" },
+  { href: "/ai", label: "AI 资料" },
+  { href: "/projects", label: "项目地图" },
   { href: "/project/hublink", label: "项目案例" },
   { href: "/framework", label: "框架" },
   { href: "/admin", label: "后台" },
@@ -14,13 +17,13 @@ const links = [
 export function SiteHeader() {
   const pathname = usePathname();
   return (
-    <header className="border-b border-border/80 bg-background/90 backdrop-blur">
+    <header className="site-header border-b border-border/80 bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4">
         <Link href="/" className="flex items-baseline gap-2">
           <span className="text-base font-semibold tracking-tight">Hublink</span>
           <span className="text-sm text-muted-foreground">个人总览</span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex flex-wrap items-center gap-1 text-sm">
           {links.map((link) => {
             const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
             return (

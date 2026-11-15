@@ -4,61 +4,23 @@ import { toNetworkData } from "@/lib/network";
 import { visibleGraph } from "@/domain/graph";
 import { views } from "@/domain/registry";
 import { listEdges, listNodes } from "@/db/store";
+import { profile } from "@/content/profile";
 
 export const dynamic = "force-dynamic";
-
-const kindLabel: Record<string, string> = {
-  network: "节点图",
-  template: "简历概览",
-  rank: "排序",
-  axis3: "三维网格",
-  traverse: "沿连接深入",
-};
+const viewLabels: Record<string, string> = { network: "空间图", template: "概况", rank: "排序", axis3: "三维", traverse: "深读" };
 
 export default function HomePage() {
   const graph = visibleGraph(listNodes("public"), listEdges("public"), "public");
   const network = toNetworkData(graph.nodes, graph.edges);
-  return (
-    <main className="mx-auto grid max-w-6xl gap-5 px-4 py-6">
-      <section className="grid max-w-3xl gap-2">
-        <p className="text-sm text-muted-foreground">个人工作图谱</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">项目、方向、经历与作品，连成一张可以继续理解的图。</h1>
-        <p className="text-sm leading-6 text-muted-foreground">
-          同一份图谱可以按简历、时间、重要性、规模、联系或三维坐标浏览；进入项目后，还可以沿结构和运行过程继续阅读。
-        </p>
-        <p className="text-sm text-muted-foreground">
-          当前公开图谱有 {graph.nodes.length} 个节点、{graph.edges.length} 条连接。
-          {graph.nodes.length === 0 ? "还没有公开内容。" : ""}
-        </p>
-      </section>
-      <Link href="/project/hublink" className="group grid gap-3 rounded-2xl border border-border bg-card p-5 transition-colors hover:bg-accent md:grid-cols-[1fr_auto] md:items-center md:p-6">
-        <span className="grid gap-2">
-          <span className="text-xs font-semibold tracking-[0.16em] text-primary">项目案例 · 原型建设中</span>
-          <span className="text-2xl font-semibold">Hublink</span>
-          <span className="max-w-2xl text-sm leading-6 text-muted-foreground">个人工作图谱本身。查看它由哪些部分组成、访客阅读和后台写入如何运行，以及还有哪些内容需要由项目参与者解释。</span>
-        </span>
-        <span className="text-sm font-medium group-hover:underline">阅读项目 →</span>
-      </Link>
-      {graph.nodes.length > 0 ? (
-        <section className="rounded-2xl border border-border bg-[#243038] px-3 py-4 text-slate-100 md:px-5">
-          <NetworkGraph nodes={network.nodes} edges={network.edges} height={720} />
-        </section>
-      ) : null}
-      <section className="grid gap-3">
-        {views.map((view) => (
-          <Link
-            key={view.id}
-            href={`/view/${view.id}`}
-            className="grid gap-1 rounded-xl border border-border bg-card px-4 py-4 transition-colors hover:bg-accent md:grid-cols-[9rem_1fr] md:items-baseline"
-          >
-            <span className="text-xs tracking-wide text-muted-foreground">{kindLabel[view.kind]}</span>
-            <span className="grid gap-1">
-              <span className="font-medium">{view.name}</span>
-              <span className="text-sm leading-6 text-muted-foreground">{view.question}</span>
-            </span>
-          </Link>
-        ))}
-      </section>
-    </main>
-  );
+  return <main className="mx-auto grid max-w-7xl gap-10 px-4 py-8 md:py-12">
+    <section className="grid gap-7 rounded-[2rem] border border-[#c9d7d6] bg-[linear-gradient(135deg,#edf4f0_0%,#f8f3e9_55%,#e7eef2_100%)] px-6 py-8 md:grid-cols-[1.15fr_0.85fr] md:px-12 md:py-12">
+      <div className="grid content-center gap-5"><p className="text-sm font-semibold tracking-[0.18em] text-[#315c55]">{profile.nameZh} · {profile.nameEn} · HUBLINK</p><h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-[#213b3a] md:text-6xl">让一个人的工作、方向与思考，成为可以继续阅读的系统。</h1><p className="max-w-2xl text-base leading-8 text-[#4e625f]">{profile.shortIntro}</p><div className="flex flex-wrap gap-3"><Link href="/resume" className="rounded-full bg-[#315c55] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#234942]">先看简历</Link><Link href="/view/impression" className="rounded-full border border-[#79958e] px-5 py-2.5 text-sm font-medium text-[#315c55] hover:bg-white/60">30 秒认识</Link><Link href="/ai" className="rounded-full border border-[#c3a96e] px-5 py-2.5 text-sm font-medium text-[#765b2c] hover:bg-white/60">给 AI 的资料</Link></div></div>
+      <div className="grid content-center gap-4 rounded-3xl border border-white/70 bg-[#203238]/95 p-5 text-slate-100 shadow-xl md:p-7"><p className="text-xs tracking-[0.16em] text-[#e6c986]">WHY THIS SITE EXISTS</p><h2 className="text-2xl font-semibold">不是把人压缩成标签，而是保留理解的路径。</h2><p className="text-sm leading-7 text-slate-300">Hublink 把来源、状态、关系和阅读方式放在同一套结构里。访客先看懂，深入者可以核验，AI 只读取公开且有边界的投影。</p><div className="grid gap-2 border-t border-white/15 pt-4 text-sm"><p><span className="text-[#e6c986]">核心方向</span>　{profile.direction}</p><p><span className="text-[#e6c986]">整体目标</span>　{profile.alignmentAim}</p><p><span className="text-[#e6c986]">博士目标框架</span>　{profile.doctoralFramework}</p><p className="text-xs leading-6 text-slate-400">博士目标框架是当前研究目标，不等于已经交付的完整系统。</p></div></div>
+    </section>
+    <section className="grid gap-5 md:grid-cols-[0.8fr_1.2fr]"><div className="grid content-start gap-3"><p className="text-sm text-muted-foreground">为什么需要多种入口</p><h2 className="text-3xl font-semibold tracking-tight">同一份资料，服务不同的理解任务。</h2><p className="leading-7 text-muted-foreground">首页负责概况；简历负责事实与经历；图谱负责关系；深读负责问题、机制、决定和证据；AI 入口提供稳定的结构化上下文。</p></div><div className="grid gap-3 sm:grid-cols-2">{profile.readingPaths.map((path) => <Link key={path.href} href={path.href} className="group rounded-2xl border border-border bg-card p-5 transition-colors hover:border-[#8caaa1] hover:bg-[#f0f6f2]"><span className="text-xs tracking-[0.14em] text-muted-foreground">{path.href === "/ai" ? "MACHINE" : "READING"}</span><h3 className="mt-2 text-lg font-semibold group-hover:text-[#315c55]">{path.label} →</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{path.description}</p></Link>)}</div></section>
+    <section className="grid gap-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-sm text-muted-foreground">先建立空间感</p><h2 className="text-2xl font-semibold tracking-tight">个人为中心的固定关系图</h2></div><p className="max-w-xl text-sm leading-6 text-muted-foreground">节点位置由个人关联度、活动领域和选定维度决定。滚轮缩放、拖动画布，三维视图可旋转；操作只改变视角，不改变节点关系。</p></div><div className="rounded-3xl border border-[#34484e] bg-[#1d2b32] p-3 text-slate-100 md:p-5"><NetworkGraph nodes={network.nodes} edges={network.edges} height={690} /></div></section>
+    <section className="grid gap-5 rounded-[2rem] border border-[#d8d3c5] bg-[#f4f1e8] p-6 md:grid-cols-[0.8fr_1.2fr] md:p-9"><div className="grid content-start gap-3"><p className="text-xs font-semibold tracking-[0.18em] text-[#806b43]">WHAT HUBLINK IS FOR</p><h2 className="text-3xl font-semibold tracking-tight text-[#293c3c]">一个可以被阅读、核对和继续协作的个人工作界面。</h2><p className="text-sm leading-7 text-[#586361]">{profile.sitePurpose}</p></div><div className="grid gap-3 sm:grid-cols-3"><article className="rounded-2xl bg-white/75 p-5"><h3 className="font-semibold">让人快速看懂</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">从简历和一分钟概况出发，再按问题、项目、机制和证据深入。</p></article><article className="rounded-2xl bg-white/75 p-5"><h3 className="font-semibold">让思考有结构</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">节点、方位、尺度和关系共同呈现关注点及其联系；每条解释都应能继续核对。</p></article><article className="rounded-2xl bg-white/75 p-5"><h3 className="font-semibold">让 AI 有边界地读取</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">使用公开 JSON 和页面链接理解已发布内容；不将私有原文、待审推断或空字段当作事实。</p></article><p className="text-xs leading-6 text-[#687370] sm:col-span-3">这是逐步建设的目标，不是已经验证完成的产品承诺。当前提供本地运行的公开图谱、阅读路径和机器读取出口；候选审核到正式图谱的发布闭环与真实读者测试仍在建设。</p></div></section>
+    <section className="grid gap-4 rounded-3xl border border-border bg-card p-6 md:grid-cols-[1fr_auto] md:p-8"><div className="grid gap-3"><p className="text-sm text-muted-foreground">当前建设状态</p><h2 className="text-2xl font-semibold">从资料到可验证的共同理解</h2><p className="max-w-3xl leading-7 text-muted-foreground">当前正式图谱已公开展示，语料候选仍在审核层。接下来会把“审核 → 阅读预览 → 正式图谱 → AI 公开上下文”贯通，再用真实读者测试是否真的读懂。</p></div><Link href="/project/hublink" className="self-center rounded-full border border-[#79958e] px-5 py-2.5 text-center text-sm font-medium text-[#315c55] hover:bg-[#eef5f1]">查看建设说明</Link></section>
+    <section className="grid gap-3"><h2 className="text-sm font-medium">继续探索</h2><div className="grid gap-2 md:grid-cols-3">{views.slice(0, 6).map((view) => <Link key={view.id} href={`/view/${view.id}`} className="rounded-xl border border-border px-4 py-3 hover:bg-accent"><span className="text-xs text-muted-foreground">{viewLabels[view.kind]}</span><span className="mt-1 block font-medium">{view.name}</span><span className="mt-1 block text-sm text-muted-foreground">{view.question}</span></Link>)}</div></section>
+  </main>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,21 +16,27 @@ const fieldClass = "h-9 w-full rounded-lg border border-input bg-transparent px-
 export function NodeForm({
   action,
   node,
+  parentNodeId,
+  defaultType,
 }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   node?: NodeRecord;
+  parentNodeId?: string;
+  defaultType?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, { error: "" });
+  const [nodeType, setNodeType] = useState(node?.type ?? defaultType ?? "project");
 
   return (
     <form action={formAction} className="grid gap-5">
       {node ? <input type="hidden" name="id" value={node.id} /> : null}
+      {parentNodeId ? <input type="hidden" name="parentNodeId" value={parentNodeId} /> : null}
       {state.error ? <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{state.error}</p> : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-1.5">
           <Label>类型</Label>
-          <select name="type" defaultValue={node?.type ?? "project"} className={fieldClass}>
+          <select name="type" value={nodeType} onChange={(event) => setNodeType(event.target.value)} className={fieldClass}>
             {nodeTypes.map((type) => (
               <option key={type.id} value={type.id}>
                 {type.label}
@@ -47,6 +53,16 @@ export function NodeForm({
           <span className="text-xs text-muted-foreground">手写内容默认个人。公开页只读取标成公开的节点。</span>
         </label>
       </div>
+
+      {nodeType === "contribution" ? <div className="grid gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+        <Label htmlFor="contributionReview">个人归属核对</Label>
+        <select id="contributionReview" name="contributionReview" defaultValue={node?.contributionReview ?? "owner_unconfirmed"} className={fieldClass}>
+          <option value="system_verified">仅系统事实由代码/资料确认，个人归属未核验</option>
+          <option value="owner_unconfirmed">个人行动与归属待本人确认</option>
+          <option value="owner_confirmed">本人已确认这项个人贡献</option>
+        </select>
+        <span className="text-xs leading-5 text-muted-foreground">核对状态与公开/个人可见性分开。新贡献默认个人；未经本人确认不能设为公开。</span>
+      </div> : <input type="hidden" name="contributionReview" value="" />}
 
       <label className="grid gap-1.5">
         <Label htmlFor="title">标题</Label>

@@ -19,8 +19,8 @@ export const hublinkCase = {
     },
     {
       title: "图形与内容呈现",
-      description: "React 组件把节点和关系画成可交互网络或三维坐标，也负责显示后台表单。",
-      files: ["src/components/network-graph.tsx", "src/components/axis-view.tsx", "src/components/axis-canvas.tsx", "src/components/node-form.tsx"],
+      description: "React 组件把固定坐标节点画成二维地图或可旋转的三维坐标，也负责显示后台表单。",
+      files: ["src/components/network-graph.tsx", "src/components/spatial-canvas.tsx", "src/components/node-form.tsx"],
     },
     {
       title: "后台与数据保存",
@@ -36,12 +36,12 @@ export const hublinkCase = {
   flows: [
     {
       title: "访客查看关系图",
-      result: "浏览器得到公开节点和连接，并显示可拖动、可选择的关系图。",
+      result: "浏览器得到公开节点和连接，并显示位置固定、可缩放平移或旋转探索的关系图。",
       steps: [
         "首页读取 SQLite 中公开节点与公开连接",
         "领域规则准备图数据，计算每个节点的连接数量",
-        "NetworkGraph 使用 d3-force 排列节点，并绘制关系线",
-        "选中一个节点后，突出显示它直接相连的节点",
+        "空间布局按人物中心、领域方位与选定维度计算固定坐标",
+        "地图模式缩放和平移，三维模式旋转、平移和缩放；选中节点后突出其直接关系",
       ],
       files: ["src/app/page.tsx", "src/db/store.ts", "src/domain/graph.ts", "src/lib/network.ts", "src/components/network-graph.tsx"],
     },
@@ -88,7 +88,7 @@ export const hublinkCase = {
   ],
   confirmedWork: [
     "当前代码包含公开阅读、图谱计算、节点管理、公开范围过滤和 GitHub 仓库快照同步。",
-    "仓库中有 9 项领域与内容测试；在 Node 22 环境下，测试、Lint 和生产构建均通过。",
+    "领域规则、本地语料与模型模拟、审核恢复、公开上下文和固定空间布局有自动测试；验证范围不等于真实读者效果。",
   ],
   needsOwnerInput: [
     "你在目标设定、需求拆解、代码审查和实现中分别承担了什么？",

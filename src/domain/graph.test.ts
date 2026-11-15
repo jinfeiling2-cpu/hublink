@@ -86,6 +86,30 @@ test("简历概览只从当前图里按关联重点和重要性取节点", () =>
   assert.deepEqual(impression.projects.map((item) => item.id), ["keep"]);
 });
 
+test("30 秒概况按中心度选择核心方向", () => {
+  const nodes = [
+    node({ id: "person.public", type: "person", title: "Public profile", centrality: 0.8 }),
+    node({ id: "person.working", type: "person", title: "Working profile", centrality: 1 }),
+    node({ id: "direction.primary", type: "direction", title: "Primary direction", centrality: 0.5 }),
+    node({ id: "direction.secondary", type: "direction", title: "Secondary direction", centrality: 1 }),
+  ];
+  const result = impressionSelection(nodes, []);
+  assert.equal(result.person?.id, "person.public");
+  assert.equal(result.coreDirection?.id, "direction.secondary");
+  assert.equal(result.directions[0]?.id, "direction.secondary");
+});
+
+test("30 秒概况优先展示与核心方向有明确关系的项目，而非权重较高的规划稿", () => {
+  const nodes = [
+    node({ id: "direction.primary", type: "direction", title: "Primary direction" }),
+    node({ id: "project.plan", type: "project", title: "Planning draft", importance: 1 }),
+    node({ id: "project.example", type: "project", title: "Example project", importance: 0.7 }),
+  ];
+  const edges = [edge({ id: "link", sourceId: "project.example", targetId: "direction.primary", type: "related_to", strength: 0.94 })];
+  const result = impressionSelection(nodes, edges);
+  assert.deepEqual(result.projects.map((item) => item.id), ["project.example"]);
+});
+
 test("深入只沿指定连接向前走，不走回去", () => {
   const edges = [
     edge({ id: "c", sourceId: "project", targetId: "part", type: "contains", sortOrder: 1 }),
@@ -141,4 +165,13 @@ test("解析 GitHub 仓库地址", () => {
   assert.deepEqual(parseGithubRepo("octo/repo"), { owner: "octo", repo: "repo" });
   assert.deepEqual(parseGithubRepo("https://github.com/octo/repo.git"), { owner: "octo", repo: "repo" });
   assert.equal(parseGithubRepo("不是仓库"), null);
+});
+
+test("私有 GitHub 来源即使项目节点公开，也不暴露来源 URL 或快照", async () => {
+  const { publicSnapshot } = await import("./graph");
+  assert.equal(publicSnapshot({ fetchedAt: "", htmlUrl: "https://github.com/private/repo", description: "secret", revision: "abc" }, true), null);
+  assert.deepEqual(publicSnapshot({ fetchedAt: "", htmlUrl: "https://github.com/public/repo", revision: "abc" }, false), {
+    htmlUrl: "https://github.com/public/repo", revision: "abc", branch: null, description: "", language: null,
+    topics: [], stars: null, forks: null, pushedAt: null, license: null, homepage: null, fetchedAt: "",
+  });
 });

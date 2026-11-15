@@ -23,7 +23,7 @@ export function GET() {
       primaryUrl: node.primaryUrl,
       exitLinks: node.exitLinks,
       categoryIds: node.categoryIds,
-      source: publicSnapshot(node.sourceSnapshot),
+      source: publicSnapshot(node.sourceSnapshot, node.sourcePrivate),
     })),
     edges: graph.edges,
     views: views.map((view) => ({

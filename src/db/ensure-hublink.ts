@@ -58,6 +58,8 @@ type LocalGraphNode = NodeInput & {
   sourceKind?: string;
   sourceExternalId?: string;
   sourcePrivate?: boolean;
+  primaryUrl?: string;
+  sourceSnapshot?: NodeInput["sourceSnapshot"];
 };
 
 type LocalGraphEdge = {
@@ -72,25 +74,29 @@ type LocalGraphEdge = {
 
 /** Insert the first content map without replacing later edits made in the admin. */
 export function ensurePersonalSeed(db: Database.Database) {
-  const file = path.join(process.cwd(), "data", "personal-graph.json");
-  if (!fs.existsSync(file)) return;
-  const parsed = JSON.parse(fs.readFileSync(file, "utf8")) as { nodes?: LocalGraphNode[]; edges?: LocalGraphEdge[] };
-  const nodes = parsed.nodes ?? [];
-  const edges = parsed.edges ?? [];
-  if (!Array.isArray(nodes) || !Array.isArray(edges)) {
-    throw new Error("data/personal-graph.json must contain node and edge arrays");
+  const dataDirectory = path.join(process.cwd(), "data");
+  const files = ["personal-graph.json", "github-reading-graph.json"]
+    .map((name) => path.join(dataDirectory, name))
+    .filter((file) => fs.existsSync(file));
+  const parsed = files.map((file) => JSON.parse(fs.readFileSync(file, "utf8")) as { nodes?: LocalGraphNode[]; edges?: LocalGraphEdge[] });
+  for (let index = 0; index < parsed.length; index++) {
+    if (!Array.isArray(parsed[index].nodes) || !Array.isArray(parsed[index].edges)) {
+      throw new Error(`${files[index]} must contain node and edge arrays`);
+    }
   }
+  const nodes = parsed.flatMap((item) => item.nodes ?? []);
+  const edges = parsed.flatMap((item) => item.edges ?? []);
   const hasNode = db.prepare("SELECT 1 AS ok FROM nodes WHERE id = ?");
   const hasEdge = db.prepare("SELECT 1 AS ok FROM edges WHERE id = ?");
   const insertNode = db.prepare(
     `INSERT INTO nodes (
       id, type, title, summary, body, role, outcome, status, time_start, time_end,
       scale, importance, centrality, visibility, primary_url, exit_links,
-      source_kind, source_external_id, source_private, source_snapshot, created_at, updated_at
+        source_kind, source_external_id, source_private, source_snapshot, created_at, updated_at
     ) VALUES (
       @id, @type, @title, @summary, @body, @role, @outcome, @status, @timeStart, @timeEnd,
-      @scale, @importance, @centrality, @visibility, '', '[]',
-      @sourceKind, @sourceExternalId, @sourcePrivate, NULL, @createdAt, @createdAt
+        @scale, @importance, @centrality, @visibility, @primaryUrl, '[]',
+        @sourceKind, @sourceExternalId, @sourcePrivate, @sourceSnapshot, @createdAt, @createdAt
     )`,
   );
   const insertCategory = db.prepare("INSERT INTO node_categories (node_id, dimension_id) VALUES (?, ?)");
@@ -115,6 +121,8 @@ export function ensurePersonalSeed(db: Database.Database) {
         sourceKind: item.sourceKind ?? "",
         sourceExternalId: item.sourceExternalId ?? "",
         sourcePrivate: item.sourcePrivate ? 1 : 0,
+        primaryUrl: item.primaryUrl ?? "",
+        sourceSnapshot: item.sourceSnapshot ? JSON.stringify(item.sourceSnapshot) : null,
         createdAt: personalCreatedAt,
       });
       for (const categoryId of item.categoryIds) insertCategory.run(item.id, categoryId);

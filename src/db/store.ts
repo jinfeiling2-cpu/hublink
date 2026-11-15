@@ -3,6 +3,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { ensureHublinkSeed, ensurePersonalSeed } from "@/db/ensure-hublink";
 import type { EdgeRecord, ExitLink, NodeInput, NodeRecord, SourceSnapshot, Visibility } from "@/domain/types";
+import { resumeDraftContentSchema, type ResumeDraft, type ResumeDraftContent } from "@/domain/resume-draft";
 
 type NodeRow = {
   id: string;
@@ -25,6 +26,7 @@ type NodeRow = {
   source_external_id: string;
   source_private: number;
   source_snapshot: string | null;
+  contribution_review: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -39,6 +41,15 @@ type EdgeRow = {
   sort_order: number;
 };
 
+export type ResumeProjectionRecord = {
+  nodeId: string;
+  position: number;
+  selected: boolean;
+  reviewedAt: string;
+};
+
+type ResumeDraftRow = { id: string; title: string; target_role: string; content_json: string; updated_at: string };
+
 const globalForDb = globalThis as unknown as { hublinkDb?: Database.Database };
 
 function databasePath() {
@@ -51,7 +62,16 @@ function getDb() {
     const db = new Database(databasePath());
     db.pragma("journal_mode = WAL");
     db.pragma("foreign_keys = ON");
-    db.exec(`
+    ensureSchema(db);
+    ensureHublinkSeed(db);
+    ensurePersonalSeed(db);
+    globalForDb.hublinkDb = db;
+  }
+  return globalForDb.hublinkDb;
+}
+
+export function ensureSchema(db: Database.Database) {
+  db.exec(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
@@ -73,6 +93,7 @@ function getDb() {
         source_external_id TEXT NOT NULL DEFAULT '',
         source_private INTEGER NOT NULL DEFAULT 0,
         source_snapshot TEXT,
+        contribution_review TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
@@ -93,12 +114,27 @@ function getDb() {
         PRIMARY KEY (node_id, dimension_id),
         FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
       );
+      CREATE TABLE IF NOT EXISTS resume_projection (
+        node_id TEXT PRIMARY KEY,
+        position INTEGER NOT NULL DEFAULT 0,
+        selected INTEGER NOT NULL DEFAULT 0,
+        reviewed_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS resume_drafts (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        target_role TEXT NOT NULL,
+        content_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        published_snapshot_json TEXT,
+        published_at TEXT,
+        publication_version TEXT
+      );
     `);
-    ensureHublinkSeed(db);
-    ensurePersonalSeed(db);
-    globalForDb.hublinkDb = db;
+  const columns = db.prepare("PRAGMA table_info(nodes)").all() as { name: string }[];
+  if (!columns.some((column) => column.name === "contribution_review")) {
+    db.exec("ALTER TABLE nodes ADD COLUMN contribution_review TEXT");
   }
-  return globalForDb.hublinkDb;
 }
 
 function readJson<T>(value: string | null, fallback: T): T {
@@ -146,14 +182,15 @@ function mapNode(row: NodeRow, categoryIds: string[]): NodeRecord {
     sourceExternalId: row.source_external_id,
     sourcePrivate: row.source_private === 1,
     sourceSnapshot: readJson<SourceSnapshot | null>(row.source_snapshot, null),
+    contributionReview: row.contribution_review as NodeRecord["contributionReview"] ?? null,
     categoryIds,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-export function listNodes(scope: "all" | "public" = "all"): NodeRecord[] {
-  const db = getDb();
+export function listNodes(scope: "all" | "public" = "all", database = getDb()): NodeRecord[] {
+  const db = database;
   const sql =
     scope === "public"
       ? "SELECT * FROM nodes WHERE visibility = 'public' ORDER BY created_at ASC"
@@ -163,15 +200,15 @@ export function listNodes(scope: "all" | "public" = "all"): NodeRecord[] {
   return rows.map((row) => mapNode(row, categories.get(row.id) ?? []));
 }
 
-export function getNode(id: string) {
-  return listNodes().find((node) => node.id === id) ?? null;
+export function getNode(id: string, database = getDb()) {
+  return listNodes("all", database).find((node) => node.id === id) ?? null;
 }
 
 export function findNodeBySource(sourceKind: string, externalId: string) {
   return listNodes().find((node) => node.sourceKind === sourceKind && node.sourceExternalId === externalId) ?? null;
 }
 
-export function listEdges(scope: "all" | "public" = "all"): EdgeRecord[] {
+export function listEdges(scope: "all" | "public" = "all", database = getDb()): EdgeRecord[] {
   const sql =
     scope === "public"
       ? `SELECT e.* FROM edges e
@@ -180,7 +217,7 @@ export function listEdges(scope: "all" | "public" = "all"): EdgeRecord[] {
          WHERE s.visibility = 'public' AND t.visibility = 'public'
          ORDER BY e.sort_order ASC, e.id ASC`
       : "SELECT * FROM edges ORDER BY sort_order ASC, id ASC";
-  const rows = getDb().prepare(sql).all() as EdgeRow[];
+  const rows = database.prepare(sql).all() as EdgeRow[];
   return rows.map((row) => ({
     id: row.id,
     sourceId: row.source_id,
@@ -198,8 +235,8 @@ function writeCategories(db: Database.Database, nodeId: string, categoryIds: str
   for (const categoryId of categoryIds) insert.run(nodeId, categoryId);
 }
 
-export function createNode(input: NodeInput) {
-  const db = getDb();
+export function createNode(input: NodeInput, db = getDb()) {
+  if (input.type === "contribution") throw new Error("Create contribution nodes with an explicit project relationship.");
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const insert = db.transaction(() => {
@@ -207,11 +244,11 @@ export function createNode(input: NodeInput) {
       `INSERT INTO nodes (
         id, type, title, summary, body, role, outcome, status, time_start, time_end,
         scale, importance, centrality, visibility, primary_url, exit_links,
-        source_kind, source_external_id, source_private, source_snapshot, created_at, updated_at
+        source_kind, source_external_id, source_private, source_snapshot, contribution_review, created_at, updated_at
       ) VALUES (
         @id, @type, @title, @summary, @body, @role, @outcome, @status, @timeStart, @timeEnd,
         @scale, @importance, @centrality, @visibility, @primaryUrl, @exitLinks,
-        @sourceKind, @sourceExternalId, @sourcePrivate, @sourceSnapshot, @createdAt, @updatedAt
+        @sourceKind, @sourceExternalId, @sourcePrivate, @sourceSnapshot, @contributionReview, @createdAt, @updatedAt
       )`,
     ).run({
       id,
@@ -219,6 +256,7 @@ export function createNode(input: NodeInput) {
       exitLinks: JSON.stringify(input.exitLinks),
       sourcePrivate: input.sourcePrivate ? 1 : 0,
       sourceSnapshot: input.sourceSnapshot ? JSON.stringify(input.sourceSnapshot) : null,
+      contributionReview: input.contributionReview ?? null,
       createdAt: now,
       updatedAt: now,
     });
@@ -226,6 +264,58 @@ export function createNode(input: NodeInput) {
   });
   insert();
   return id;
+}
+
+export function createContributionNode(input: NodeInput, projectId: string, db = getDb(), fixedId?: string) {
+  if (input.type !== "contribution") throw new Error("Expected a contribution node.");
+  const parent = getNode(projectId, db);
+  if (!parent || !["project", "experience"].includes(parent.type)) throw new Error("Contribution parent must be a project or experience.");
+  const id = fixedId ?? crypto.randomUUID();
+  const now = new Date().toISOString();
+  const visibility = input.contributionReview === "owner_confirmed" ? input.visibility : "personal";
+  const insert = db.transaction(() => {
+    db.prepare(`
+      INSERT INTO nodes (
+        id, type, title, summary, body, role, outcome, status, time_start, time_end,
+        scale, importance, centrality, visibility, primary_url, exit_links,
+        source_kind, source_external_id, source_private, source_snapshot, contribution_review, created_at, updated_at
+      ) VALUES (
+        @id, @type, @title, @summary, @body, @role, @outcome, @status, @timeStart, @timeEnd,
+        @scale, @importance, @centrality, @visibility, @primaryUrl, @exitLinks,
+        @sourceKind, @sourceExternalId, @sourcePrivate, @sourceSnapshot, @contributionReview, @createdAt, @updatedAt
+      )
+    `).run({
+      id, ...input, visibility,
+      exitLinks: JSON.stringify(input.exitLinks),
+      sourcePrivate: input.sourcePrivate ? 1 : 0,
+      sourceSnapshot: input.sourceSnapshot ? JSON.stringify(input.sourceSnapshot) : null,
+      contributionReview: input.contributionReview ?? "owner_unconfirmed",
+      createdAt: now, updatedAt: now,
+    });
+    writeCategories(db, id, input.categoryIds);
+    const nextOrder = (db.prepare("SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM edges WHERE type = 'contribution_to' AND target_id = ?").get(projectId) as { n: number }).n;
+    db.prepare(`INSERT INTO edges (id, source_id, target_id, type, label, strength, sort_order)
+      VALUES (?, ?, ?, 'contribution_to', '', 0, ?)`)
+      .run(crypto.randomUUID(), id, projectId, nextOrder);
+  });
+  insert();
+  return id;
+}
+
+export function setContributionParent(contributionId: string, projectId: string, db = getDb()) {
+  const contribution = getNode(contributionId, db);
+  const parent = getNode(projectId, db);
+  if (!contribution || contribution.type !== "contribution" || !parent || !["project", "experience"].includes(parent.type)) {
+    throw new Error("Invalid contribution or parent.");
+  }
+  const write = db.transaction(() => {
+    db.prepare("DELETE FROM edges WHERE type = 'contribution_to' AND source_id = ?").run(contributionId);
+    const nextOrder = (db.prepare("SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM edges WHERE type = 'contribution_to' AND target_id = ?").get(projectId) as { n: number }).n;
+    db.prepare(`INSERT INTO edges (id, source_id, target_id, type, label, strength, sort_order)
+      VALUES (?, ?, ?, 'contribution_to', '', 0, ?)`)
+      .run(crypto.randomUUID(), contributionId, projectId, nextOrder);
+  });
+  write();
 }
 
 export function updateNode(id: string, input: NodeInput) {
@@ -239,7 +329,8 @@ export function updateNode(id: string, input: NodeInput) {
         scale = @scale, importance = @importance, centrality = @centrality,
         visibility = @visibility, primary_url = @primaryUrl, exit_links = @exitLinks,
         source_kind = @sourceKind, source_external_id = @sourceExternalId,
-        source_private = @sourcePrivate, source_snapshot = @sourceSnapshot, updated_at = @updatedAt
+        source_private = @sourcePrivate, source_snapshot = @sourceSnapshot,
+        contribution_review = @contributionReview, updated_at = @updatedAt
       WHERE id = @id`,
     ).run({
       id,
@@ -247,21 +338,41 @@ export function updateNode(id: string, input: NodeInput) {
       exitLinks: JSON.stringify(input.exitLinks),
       sourcePrivate: input.sourcePrivate ? 1 : 0,
       sourceSnapshot: input.sourceSnapshot ? JSON.stringify(input.sourceSnapshot) : null,
+      contributionReview: input.contributionReview ?? null,
       updatedAt: now,
     });
     writeCategories(db, id, input.categoryIds);
+    if (input.visibility !== "public" || input.sourcePrivate) {
+      db.prepare("UPDATE resume_projection SET selected = 0, reviewed_at = ? WHERE node_id = ?")
+        .run(now, id);
+    }
   });
   update();
 }
 
-export function setVisibility(id: string, visibility: Visibility) {
-  getDb()
-    .prepare("UPDATE nodes SET visibility = ?, updated_at = ? WHERE id = ?")
-    .run(visibility, new Date().toISOString(), id);
+export function setVisibility(id: string, visibility: Visibility, db = getDb()) {
+  const node = getNode(id, db);
+  if (node?.type === "contribution" && visibility === "public" && node.contributionReview !== "owner_confirmed") {
+    throw new Error("A contribution must be owner-confirmed before it can be public.");
+  }
+  const update = db.transaction(() => {
+    db.prepare("UPDATE nodes SET visibility = ?, updated_at = ? WHERE id = ?")
+      .run(visibility, new Date().toISOString(), id);
+    if (visibility === "personal") {
+      db.prepare("UPDATE resume_projection SET selected = 0, reviewed_at = ? WHERE node_id = ?")
+        .run(new Date().toISOString(), id);
+    }
+  });
+  update();
 }
 
 export function deleteNode(id: string) {
-  getDb().prepare("DELETE FROM nodes WHERE id = ?").run(id);
+  const db = getDb();
+  const remove = db.transaction(() => {
+    db.prepare("DELETE FROM resume_projection WHERE node_id = ?").run(id);
+    db.prepare("DELETE FROM nodes WHERE id = ?").run(id);
+  });
+  remove();
 }
 
 export function createEdge(input: Omit<EdgeRecord, "id">) {
@@ -277,6 +388,72 @@ export function createEdge(input: Omit<EdgeRecord, "id">) {
 
 export function deleteEdge(id: string) {
   getDb().prepare("DELETE FROM edges WHERE id = ?").run(id);
+}
+
+export function listResumeProjection(): ResumeProjectionRecord[] {
+  const rows = getDb()
+    .prepare("SELECT node_id, position, selected, reviewed_at FROM resume_projection ORDER BY position ASC, node_id ASC")
+    .all() as { node_id: string; position: number; selected: number; reviewed_at: string }[];
+  return rows.map((row) => ({
+    nodeId: row.node_id,
+    position: row.position,
+    selected: row.selected === 1,
+    reviewedAt: row.reviewed_at,
+  }));
+}
+
+export function setResumeProjectionNode(nodeId: string, selected: boolean, position?: number) {
+  const node = getNode(nodeId);
+  if (!node || node.type !== "project" || node.visibility !== "public" || node.sourcePrivate) {
+    throw new Error("Only public projects with public sources can enter the resume projection.");
+  }
+  const db = getDb();
+  const nextPosition = position ?? (db.prepare(
+    "SELECT COALESCE(MAX(position), 0) + 1 AS next FROM resume_projection WHERE selected = 1",
+  ).get() as { next: number }).next;
+  db.prepare(`
+    INSERT INTO resume_projection (node_id, position, selected, reviewed_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(node_id) DO UPDATE SET position = excluded.position, selected = excluded.selected, reviewed_at = excluded.reviewed_at
+  `).run(nodeId, nextPosition, selected ? 1 : 0, new Date().toISOString());
+}
+
+export function listResumeDrafts(db = getDb()): ResumeDraft[] {
+  const rows = db.prepare("SELECT id, title, target_role, content_json, updated_at FROM resume_drafts ORDER BY updated_at DESC, id ASC").all() as ResumeDraftRow[];
+  return rows.map(mapResumeDraft);
+}
+
+export function getResumeDraft(id: string, db = getDb()): ResumeDraft | null {
+  const row = db.prepare("SELECT id, title, target_role, content_json, updated_at FROM resume_drafts WHERE id = ?").get(id) as ResumeDraftRow | undefined;
+  return row ? mapResumeDraft(row) : null;
+}
+
+function mapResumeDraft(row: ResumeDraftRow): ResumeDraft {
+  return {
+    id: row.id,
+    title: row.title,
+    targetRole: row.target_role,
+    content: resumeDraftContentSchema.parse(JSON.parse(row.content_json)),
+    updatedAt: row.updated_at,
+  };
+}
+
+export function createResumeDraft(input: { title: string; targetRole: string; content: ResumeDraftContent }, db = getDb()) {
+  const content = resumeDraftContentSchema.parse(input.content);
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  db.prepare(`INSERT INTO resume_drafts (id, title, target_role, content_json, updated_at)
+    VALUES (?, ?, ?, ?, ?)`)
+    .run(id, input.title, input.targetRole, JSON.stringify(content), now);
+  return id;
+}
+
+export function saveResumeDraft(input: { id: string; title: string; targetRole: string; content: ResumeDraftContent }, db = getDb()) {
+  const content = resumeDraftContentSchema.parse(input.content);
+  const now = new Date().toISOString();
+  const result = db.prepare(`UPDATE resume_drafts SET title = ?, target_role = ?, content_json = ?, updated_at = ? WHERE id = ?`)
+    .run(input.title, input.targetRole, JSON.stringify(content), now, input.id);
+  if (result.changes !== 1) throw new Error("Resume draft was not found.");
 }
 
 export function counts() {

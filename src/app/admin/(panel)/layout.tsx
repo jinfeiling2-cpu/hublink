@@ -8,9 +8,14 @@ export const dynamic = "force-dynamic";
 const links = [
   { href: "/admin", label: "节点" },
   { href: "/admin/graph", label: "全图" },
+  { href: "/admin/resume", label: "简历投影" },
+  { href: "/admin/resume/drafts", label: "私人简历草稿" },
+  { href: "/admin/mainline", label: "私人主线原型" },
   { href: "/admin/nodes/new", label: "新建" },
   { href: "/admin/edges/new", label: "连线" },
   { href: "/admin/sources", label: "来源" },
+  { href: "/admin/corpus", label: "语料分析" },
+  { href: "/admin/corpus/reading", label: "阅读预览" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

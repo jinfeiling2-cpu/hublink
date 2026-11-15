@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Hublink",
-  description: "把个人的工作、方向、经历和作品连接起来，再用不同方式阅读。",
+  description: "Connect projects, experience, and evidence in a graph that supports multiple ways of reading.",
 };
 
 export default function RootLayout({

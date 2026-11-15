@@ -94,7 +94,7 @@ export default async function ProjectCasePage({ params }: { params: Promise<{ id
           <BuildStep title="建立运行骨架" detail="创建 Next.js 项目、页面路由和基础开发配置。" />
           <BuildStep title="加入图谱规则与后台" detail="定义节点、关系、阅读方式、公开状态，以及创建和编辑数据的入口。" />
           <BuildStep title="写入 Hublink 种子案例" detail="用项目节点、架构部分和操作步骤填入第一张可运行的图。" />
-          <BuildStep title="改进关系图布局" detail="增加力导向排布、颜色分组、节点选择与直接邻接高亮。" />
+          <BuildStep title="改进关系图布局" detail="从自由排布改为以人为锚点的固定空间；领域决定方位，缩放和平移只改变视角，三维模型支持旋转。" />
           <BuildStep title="让公开查询经过可见性过滤" detail="阅读页和公开 API 只读取公开节点，连接必须两端都公开。" />
           <BuildStep title="转向源码目录与调用说明" detail="近期种子内容偏向代码目录和函数路径；本页补充面向读者的系统职责、实际流程和待理解问题。" last />
         </ol>

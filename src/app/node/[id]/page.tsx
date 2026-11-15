@@ -20,7 +20,7 @@ export default async function NodePage({ params }: { params: Promise<{ id: strin
   const outgoing = edges.filter((edge) => edge.sourceId === node.id);
   const incoming = edges.filter((edge) => edge.targetId === node.id);
   const byId = new Map(nodes.map((item) => [item.id, item]));
-  const snapshot = publicSnapshot(node.sourceSnapshot);
+  const snapshot = publicSnapshot(node.sourceSnapshot, node.sourcePrivate);
   const categoryLabels = node.categoryIds
     .map((categoryId) => categories.find((item) => item.id === categoryId)?.label)
     .filter(Boolean);
@@ -161,7 +161,7 @@ function RelationGroup({
   empty,
 }: {
   title: string;
-  edges: { id: string; type: string; sourceId: string; targetId: string }[];
+  edges: { id: string; type: string; sourceId: string; targetId: string; label: string }[];
   byId: Map<string, { id: string; title: string }>;
   direction: "out" | "in";
   empty: string;
@@ -184,6 +184,7 @@ function RelationGroup({
                 <Link href={`/node/${other.id}`} className="underline underline-offset-4">
                   {other.title}
                 </Link>
+                {edge.label ? <p className="mt-1 text-sm leading-6 text-muted-foreground">{edge.label}</p> : null}
               </li>
             );
           })}

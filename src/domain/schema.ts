@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { categories, nodeTypes, statuses } from "./registry";
-import type { ExitLink } from "./types";
+import type { ContributionReviewStatus, ExitLink } from "./types";
 
 const categoryIds = new Set(categories.map((item) => item.id));
 const statusIds = new Set(statuses.map((item) => item.id));
@@ -31,6 +31,17 @@ export const nodeInputSchema = z.object({
     }),
   ),
   categoryIds: z.array(z.string()).refine((ids) => ids.every((id) => categoryIds.has(id)), "未知的类别"),
+  contributionReview: z.enum(["system_verified", "owner_unconfirmed", "owner_confirmed"]).nullable(),
+}).superRefine((value, context) => {
+  if (value.type === "contribution" && !value.contributionReview) {
+    context.addIssue({ code: "custom", path: ["contributionReview"], message: "个人贡献需要明确核对状态" });
+  }
+  if (value.type !== "contribution" && value.contributionReview) {
+    context.addIssue({ code: "custom", path: ["contributionReview"], message: "核对状态只用于个人贡献节点" });
+  }
+  if (value.type === "contribution" && value.visibility === "public" && value.contributionReview !== "owner_confirmed") {
+    context.addIssue({ code: "custom", path: ["visibility"], message: "未经本人确认的个人贡献不能公开" });
+  }
 });
 
 export function parseExitLinks(text: string): ExitLink[] {
@@ -80,5 +91,8 @@ export function readNodeFields(formData: FormData) {
     primaryUrl: text("primaryUrl"),
     exitLinks: parseExitLinks(text("exitLinks")),
     categoryIds: formData.getAll("categoryIds").map(String),
+    contributionReview: text("contributionReview")
+      ? text("contributionReview") as ContributionReviewStatus
+      : text("type") === "contribution" ? "owner_unconfirmed" : null,
   });
 }
