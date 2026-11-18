@@ -172,7 +172,8 @@ function MapCanvas({ layout, height, selected, hovered, neighbors, resetKey, rad
       {layout.edges.map((edge) => {
         const from = byId.get(edge.source)!, to = byId.get(edge.target)!;
         const hot = !focus || edge.source === focus || edge.target === focus;
-        return <line key={edge.id} x1={from.x} y1={-from.y} x2={to.x} y2={-to.y} stroke={hot ? '#afbec7' : '#afbec7'} strokeOpacity={hot ? 0.3 + (edge.strength ?? 0) * 0.35 : 0.045} strokeWidth={edgeWidth(edge.strength)} strokeDasharray={edge.strength === null ? "5 5" : undefined} vectorEffect="non-scaling-stroke"><title>{edgeTypeById(edge.type)?.label ?? edge.type}{edge.label ? `：${edge.label}` : ''} · 权重 {edge.strength ?? '未填写'}</title></line>;
+        const edgeTitle = `${edgeTypeById(edge.type)?.label ?? edge.type}${edge.label ? `：${edge.label}` : ''} · 权重 ${edge.strength ?? '未填写'}`;
+        return <line key={edge.id} x1={from.x} y1={-from.y} x2={to.x} y2={-to.y} stroke={hot ? '#afbec7' : '#afbec7'} strokeOpacity={hot ? 0.3 + (edge.strength ?? 0) * 0.35 : 0.045} strokeWidth={edgeWidth(edge.strength)} strokeDasharray={edge.strength === null ? "5 5" : undefined} vectorEffect="non-scaling-stroke"><title>{edgeTitle}</title></line>;
       })}
       {ordered.map((node) => {
         const hot = !focus || neighbors.has(node.id);

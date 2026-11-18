@@ -31,8 +31,19 @@ import { runLocalCorpus } from "@/agents/run-local";
 import { saveProposalReview } from "@/agents/reviews";
 import { runCorpusPipeline } from "@/agents/orchestrator";
 import { readHublinkContributionCandidates } from "@/domain/hublink-contribution-candidates";
-import { resumeDraftInputSchema, validateResumeDraftContent, type ResumeDraftContent } from "@/domain/resume-draft";
+import { resumeDraftContentSchema, resumeDraftInputSchema, validateResumeDraftContent, type ResumeDraftContent } from "@/domain/resume-draft";
 import { checkNewTaskAgainstBoundaries, savePrivateMainlineReview, savePrivateTaskCheck } from "@/domain/private-mainline";
+import {
+  addPrivateAction,
+  addPrivateClaim,
+  addPrivateFeedback,
+  addPrivateSource,
+  createPrivateEpisode,
+  updatePrivateClaimStatus,
+  updatePrivateActionResult,
+  updatePrivateEpisode,
+  updatePrivateSourceStatus,
+} from "@/domain/private-records";
 
 export type FormState = { error: string };
 
@@ -164,9 +175,14 @@ export async function createStarterResumeDraft(formData: FormData) {
   const kind = String(formData.get("kind") ?? "");
   if (kind !== "a" && kind !== "b") redirect("/admin/resume/drafts?notice=invalid");
   createResumeDraft({
-    title: kind === "a" ? "简历目标稿 A" : "简历对照稿 B",
-    targetRole: "请填写目标岗位或读者",
-    content: { entries: [] },
+    title: kind === "a" ? "算法实习方向验证稿" : "软件工程 / 系统设计对照稿",
+    targetRole: kind === "a"
+      ? "算法实习（验证方向：LLM/Agent、空间智能、行为建模；目标待本人调整）"
+      : "软件工程 / 系统设计（对照验证，不代表求职意向变更）",
+    content: resumeDraftContentSchema.parse({
+      entries: [],
+      target: { kind: "general", domain: kind === "a" ? "LLM/Agent、空间智能、行为建模" : "软件工程、系统设计", generalLabel: kind === "a" ? "算法实习验证方向 · 通用草稿" : "软件工程对照方向 · 通用草稿" },
+    }),
   });
   redirect("/admin/resume/drafts?notice=starter-created");
 }
@@ -217,6 +233,173 @@ export async function checkPrivateMainlineTaskAction(formData: FormData) {
   }
   revalidatePath("/admin/mainline");
   redirect("/admin/mainline?notice=task-checked");
+}
+
+export async function createPrivateEpisodeAction(formData: FormData) {
+  await assertAdmin();
+  let episodeId = "";
+  try {
+    const episode = createPrivateEpisode({
+      kind: String(formData.get("kind") ?? "thought") as "thought" | "decision",
+      title: String(formData.get("title") ?? ""),
+      body: String(formData.get("body") ?? ""),
+    });
+    episodeId = episode.id;
+  } catch {
+    redirect("/admin/records?notice=invalid");
+  }
+  redirect(`/admin/records/${episodeId}`);
+}
+
+export async function updatePrivateEpisodeAction(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "");
+  const projectIds = formData.getAll("projectIds").map(String);
+  const goalIds = formData.getAll("goalIds").map(String);
+  const projects = listNodes("all").filter((node) => projectIds.includes(node.id) && ["project", "experience"].includes(node.type));
+  if (projects.length !== new Set(projectIds).size) redirect(`/admin/records/${id}?notice=invalid-project`);
+  const goals = listNodes("all").filter((node) => goalIds.includes(node.id) && ["goal", "direction"].includes(node.type));
+  if (goals.length !== new Set(goalIds).size) redirect(`/admin/records/${id}?notice=invalid-goal`);
+  try {
+    const lines = (name: string) => String(formData.get(name) ?? "").split("\n").map((value) => value.trim()).filter(Boolean);
+    updatePrivateEpisode(id, {
+      kind: String(formData.get("kind") ?? "thought") as "thought" | "decision",
+      title: String(formData.get("title") ?? ""), body: String(formData.get("body") ?? ""),
+      context: String(formData.get("context") ?? ""), currentState: String(formData.get("currentState") ?? ""),
+      goalsAndValues: String(formData.get("goalsAndValues") ?? ""), constraints: String(formData.get("constraints") ?? ""),
+      options: lines("options"), expectedOutcomes: String(formData.get("expectedOutcomes") ?? ""),
+      evidenceAndUncertainty: String(formData.get("evidenceAndUncertainty") ?? ""), decision: String(formData.get("decision") ?? ""),
+      reasons: String(formData.get("reasons") ?? ""), rejectedOptions: lines("rejectedOptions"),
+      status: String(formData.get("status") ?? "draft") as "draft" | "active" | "completed" | "archived",
+      projectIds, goalIds,
+      lastReviewedAt: formData.get("reviewed") === "on" ? new Date().toISOString() : null,
+    });
+  } catch {
+    redirect(`/admin/records/${id}?notice=invalid`);
+  }
+  revalidatePath(`/admin/records/${id}`);
+  redirect(`/admin/records/${id}?notice=saved`);
+}
+
+function parseSourceIds(value: FormDataEntryValue | null) {
+  return String(value ?? "").split(",").map((part) => part.trim()).filter(Boolean);
+}
+
+export async function addPrivateSourceAction(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "");
+  const observed = String(formData.get("observedAt") ?? "");
+  try {
+    addPrivateSource(id, {
+      sourceType: String(formData.get("sourceType") ?? "other") as "document" | "project" | "code" | "paper" | "conversation" | "user_statement" | "experiment" | "other",
+      title: String(formData.get("title") ?? ""), locator: String(formData.get("locator") ?? ""),
+      observedAt: observed ? new Date(observed).toISOString() : null,
+      effectiveDate: String(formData.get("effectiveDate") ?? "") || null,
+      privacy: "private", verificationStatus: String(formData.get("verificationStatus") ?? "needs_review") as "candidate" | "needs_review" | "confirmed" | "stale",
+      summary: String(formData.get("summary") ?? ""), scope: String(formData.get("scope") ?? ""),
+    });
+  } catch {
+    redirect(`/admin/records/${id}?notice=invalid-source`);
+  }
+  revalidatePath(`/admin/records/${id}`);
+  redirect(`/admin/records/${id}?notice=source-added`);
+}
+
+export async function addPrivateClaimAction(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "");
+  const status = String(formData.get("status") ?? "candidate") as "candidate" | "needs_review" | "confirmed" | "rejected" | "superseded" | "stale";
+  try {
+    addPrivateClaim(id, {
+      content: String(formData.get("content") ?? ""),
+      claimType: String(formData.get("claimType") ?? "self_reported") as "verified_fact" | "self_reported" | "user_judgment" | "ai_inference" | "hypothesis" | "speculative_vision" | "deprecated_belief",
+      status, sourceIds: parseSourceIds(formData.get("sourceIds")), checkedAt: status === "confirmed" ? new Date().toISOString() : null,
+      scope: String(formData.get("scope") ?? ""), privacy: "private", proposedBy: String(formData.get("proposedBy") ?? "user") as "user" | "ai" | "imported_source",
+    });
+  } catch {
+    redirect(`/admin/records/${id}?notice=invalid-claim`);
+  }
+  revalidatePath(`/admin/records/${id}`);
+  redirect(`/admin/records/${id}?notice=claim-added`);
+}
+
+export async function addPrivateActionAction(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "");
+  try {
+    addPrivateAction(id, {
+      description: String(formData.get("description") ?? ""), owner: String(formData.get("owner") ?? "user") as "user" | "ai" | "collaborator",
+      authorizationLevel: String(formData.get("authorizationLevel") ?? "L0") as "L0" | "L1" | "L2" | "L3",
+      status: String(formData.get("status") ?? "planned") as "planned" | "in_progress" | "done" | "cancelled",
+      expectedResult: String(formData.get("expectedResult") ?? ""), actualResult: String(formData.get("actualResult") ?? ""),
+      feedback: String(formData.get("feedback") ?? ""), sourceIds: parseSourceIds(formData.get("sourceIds")),
+      date: String(formData.get("date") ?? "") || null,
+    });
+  } catch {
+    redirect(`/admin/records/${id}?notice=invalid-action`);
+  }
+  revalidatePath(`/admin/records/${id}`);
+  redirect(`/admin/records/${id}?notice=action-added`);
+}
+
+export async function addPrivateFeedbackAction(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "");
+  try {
+    addPrivateFeedback(id, { text: String(formData.get("text") ?? ""), sourceIds: parseSourceIds(formData.get("sourceIds")) });
+  } catch {
+    redirect(`/admin/records/${id}?notice=invalid-feedback`);
+  }
+  revalidatePath(`/admin/records/${id}`);
+  redirect(`/admin/records/${id}?notice=feedback-added`);
+}
+
+export async function reviewPrivateClaimAction(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "");
+  try {
+    updatePrivateClaimStatus(
+      id,
+      String(formData.get("claimId") ?? ""),
+      String(formData.get("status") ?? "needs_review") as "candidate" | "needs_review" | "confirmed" | "rejected" | "superseded" | "stale",
+    );
+  } catch {
+    redirect(`/admin/records/${id}?notice=invalid-review`);
+  }
+  revalidatePath(`/admin/records/${id}`);
+  redirect(`/admin/records/${id}?notice=claim-reviewed`);
+}
+
+export async function reviewPrivateSourceAction(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "");
+  try {
+    updatePrivateSourceStatus(
+      id,
+      String(formData.get("sourceId") ?? ""),
+      String(formData.get("verificationStatus") ?? "needs_review") as "candidate" | "needs_review" | "confirmed" | "stale",
+    );
+  } catch {
+    redirect(`/admin/records/${id}?notice=invalid-review`);
+  }
+  revalidatePath(`/admin/records/${id}`);
+  redirect(`/admin/records/${id}?notice=source-reviewed`);
+}
+
+export async function updatePrivateActionResultAction(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "");
+  try {
+    updatePrivateActionResult(id, String(formData.get("actionId") ?? ""), {
+      status: String(formData.get("status") ?? "planned") as "planned" | "in_progress" | "done" | "cancelled",
+      actualResult: String(formData.get("actualResult") ?? ""),
+      feedback: String(formData.get("feedback") ?? ""),
+    });
+  } catch {
+    redirect(`/admin/records/${id}?notice=invalid-action-update`);
+  }
+  revalidatePath(`/admin/records/${id}`);
+  redirect(`/admin/records/${id}?notice=action-updated`);
 }
 
 export async function removeNode(formData: FormData) {

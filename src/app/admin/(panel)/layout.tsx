@@ -11,6 +11,7 @@ const links = [
   { href: "/admin/resume", label: "简历投影" },
   { href: "/admin/resume/drafts", label: "私人简历草稿" },
   { href: "/admin/mainline", label: "私人主线原型" },
+  { href: "/admin/records", label: "想法与决策记录" },
   { href: "/admin/nodes/new", label: "新建" },
   { href: "/admin/edges/new", label: "连线" },
   { href: "/admin/sources", label: "来源" },
