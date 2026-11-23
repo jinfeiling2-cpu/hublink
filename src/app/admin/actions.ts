@@ -32,7 +32,7 @@ import { saveProposalReview } from "@/agents/reviews";
 import { runCorpusPipeline } from "@/agents/orchestrator";
 import { readHublinkContributionCandidates } from "@/domain/hublink-contribution-candidates";
 import { resumeDraftContentSchema, resumeDraftInputSchema, validateResumeDraftContent, type ResumeDraftContent } from "@/domain/resume-draft";
-import { checkNewTaskAgainstBoundaries, savePrivateMainlineReview, savePrivateTaskCheck } from "@/domain/private-mainline";
+import { checkNewTaskAgainstBoundaries, savePrivateMainlineReview, savePrivateRelationshipReview, savePrivateTaskCheck } from "@/domain/private-mainline";
 import {
   addPrivateAction,
   addPrivateClaim,
@@ -222,6 +222,22 @@ export async function savePrivateMainlineReviewAction(formData: FormData) {
   }
   revalidatePath("/admin/mainline");
   redirect("/admin/mainline?notice=saved");
+}
+
+export async function savePrivateMainlineRelationshipReviewAction(formData: FormData) {
+  await assertAdmin();
+  try {
+    savePrivateRelationshipReview({
+      title: String(formData.get("title") ?? ""),
+      status: String(formData.get("status") ?? "candidate") as "candidate" | "owner_confirmed" | "rejected" | "superseded",
+      explanationOverride: String(formData.get("explanationOverride") ?? ""),
+      ownerNote: String(formData.get("ownerNote") ?? ""),
+    });
+  } catch {
+    redirect("/admin/mainline?notice=invalid-relationship");
+  }
+  revalidatePath("/admin/mainline");
+  redirect("/admin/mainline?notice=relationship-saved");
 }
 
 export async function checkPrivateMainlineTaskAction(formData: FormData) {
